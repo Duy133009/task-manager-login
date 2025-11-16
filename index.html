@@ -6,7 +6,15 @@
     <title>Đăng Nhập - Quản Lý Task</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        window.firebaseApp = initializeApp;
+        window.firebaseAuth = getAuth;
+        window.GoogleAuthProvider = GoogleAuthProvider;
+    </script>
+    <script src="firebase-config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -69,7 +77,10 @@
                     <span>hoặc</span>
                 </div>
 
-                <div id="googleSignInButton" class="google-signin-btn"></div>
+                <button type="button" class="btn btn-google" onclick="signInWithGoogle()">
+                    <span style="margin-right: 8px;">🔵</span>
+                    Đăng nhập bằng Google
+                </button>
 
                 <div id="loginError" class="error-message" style="display: none;"></div>
             </form>

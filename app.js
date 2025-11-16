@@ -269,11 +269,12 @@ function showSuccess(message) {
     }, 5000);
 }
 
-// Google OAuth Configuration
-const GOOGLE_CLIENT_ID = '951761465410-dkr2pebfckfb1a082k4vcjbugptgcg6n.apps.googleusercontent.com';
+// Firebase Auth Configuration
+let firebaseApp = null;
+let firebaseAuthInstance = null;
 
-// Initialize Google Sign-In
-window.addEventListener('DOMContentLoaded', () => {
+// Initialize Firebase
+window.addEventListener('DOMContentLoaded', async () => {
     // Check if user is already logged in
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -297,62 +298,78 @@ window.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // Wait for Google API to load
-    if (typeof google !== 'undefined' && google.accounts) {
-        initializeGoogleSignIn();
-    } else {
-        // Retry after a short delay
-        setTimeout(() => {
-            if (typeof google !== 'undefined' && google.accounts) {
-                initializeGoogleSignIn();
-            }
-        }, 500);
+    // Initialize Firebase
+    try {
+        if (typeof window.firebaseApp !== 'undefined' && typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_API_KEY') {
+            firebaseApp = window.firebaseApp(firebaseConfig);
+            firebaseAuthInstance = window.firebaseAuth(firebaseApp);
+            console.log('Firebase initialized successfully');
+        } else {
+            console.warn('Firebase chưa được cấu hình. Vui lòng cập nhật firebase-config.js');
+        }
+    } catch (error) {
+        console.error('Firebase initialization error:', error);
     }
 });
 
-function initializeGoogleSignIn() {
-    // Initialize Google Sign-In buttons
-    google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleSignIn
-    });
-
-    // Render sign-in button for login form
-    const signInBtn = document.getElementById('googleSignInButton');
-    if (signInBtn) {
-        google.accounts.id.renderButton(signInBtn, { 
-            theme: 'outline', 
-            size: 'large',
-            width: '100%',
-            text: 'signin_with',
-            locale: 'vi'
-        });
+// Sign in with Google using Firebase (global function)
+async function signInWithGoogle() {
+    // Wait for Firebase to initialize
+    if (!firebaseAuthInstance) {
+        // Try to initialize if config is available
+        if (typeof window.firebaseApp !== 'undefined' && typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_API_KEY') {
+            try {
+                firebaseApp = window.firebaseApp(firebaseConfig);
+                firebaseAuthInstance = window.firebaseAuth(firebaseApp);
+            } catch (error) {
+                console.error('Firebase init error:', error);
+            }
+        }
+        
+        if (!firebaseAuthInstance) {
+            alert('Firebase chưa được cấu hình. Vui lòng cập nhật firebase-config.js với Firebase config của bạn.');
+            return;
+        }
     }
 
-    // Render sign-up button for register form
-    const signUpBtn = document.getElementById('googleSignUpButton');
-    if (signUpBtn) {
-        google.accounts.id.renderButton(signUpBtn, { 
-            theme: 'outline', 
-            size: 'large',
-            width: '100%',
-            text: 'signup_with',
-            locale: 'vi'
-        });
+    try {
+        const provider = new window.GoogleAuthProvider();
+        
+        // Sign in with popup
+        const result = await firebaseAuthInstance.signInWithPopup(provider);
+        const user = result.user;
+        
+        // Handle successful sign-in
+        await handleFirebaseSignIn(user);
+        
+    } catch (error) {
+        console.error('Firebase sign-in error:', error);
+        const errorDiv = document.getElementById('loginError') || document.getElementById('registerError');
+        if (errorDiv) {
+            if (error.code === 'auth/popup-closed-by-user') {
+                errorDiv.textContent = 'Đăng nhập bị hủy';
+            } else if (error.code === 'auth/popup-blocked') {
+                errorDiv.textContent = 'Popup bị chặn. Vui lòng cho phép popup và thử lại.';
+            } else {
+                errorDiv.textContent = 'Có lỗi xảy ra khi đăng nhập bằng Google: ' + (error.message || error.code);
+            }
+            errorDiv.style.display = 'block';
+        }
     }
 }
 
-// Handle Google Sign-In
-async function handleGoogleSignIn(response) {
+// Make function global
+window.signInWithGoogle = signInWithGoogle;
+
+// Handle Firebase Sign-In
+async function handleFirebaseSignIn(firebaseUser) {
     try {
-        // Decode JWT token
-        const payload = JSON.parse(atob(response.credential.split('.')[1]));
-        
-        const googleId = payload.sub;
-        const email = payload.email;
-        const fullName = payload.name;
-        const avatarUrl = payload.picture;
-        const emailVerified = payload.email_verified;
+        // Get user info from Firebase
+        const googleId = firebaseUser.uid;
+        const email = firebaseUser.email;
+        const fullName = firebaseUser.displayName;
+        const avatarUrl = firebaseUser.photoURL;
+        const emailVerified = firebaseUser.emailVerified;
 
         // Check if user exists by google_id or email
         let { data: existingUsers, error: checkError } = await supabaseClient
