@@ -598,9 +598,19 @@ async function loadTasks() {
         updateFilterDisplay();
     } catch (error) {
         console.error('Error loading tasks:', error);
+        console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        });
         const container = document.getElementById('tasksTableBody');
         if (container) {
-            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Có lỗi xảy ra khi tải tasks</div>';
+            let errorMessage = 'Có lỗi xảy ra khi tải tasks';
+            if (error.message) {
+                errorMessage += `<br><small style="color: #999; margin-top: 8px; display: block;">${escapeHtml(error.message)}</small>`;
+            }
+            container.innerHTML = `<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">${errorMessage}</div>`;
         }
     }
 }
