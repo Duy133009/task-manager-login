@@ -61,6 +61,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Load tasks
     await loadTasks();
     updateNavCounts();
+    updateFilterDisplay();
 });
 
 // Setup event listeners
@@ -853,7 +854,10 @@ function updateFilterDisplay() {
 }
 
 // Sort Menu
-function openSortMenu() {
+function openSortMenu(event) {
+    if (event) {
+        event.stopPropagation();
+    }
     const menu = document.getElementById('sortMenu');
     if (menu) {
         menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
