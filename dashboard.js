@@ -515,23 +515,40 @@ async function loadTasks() {
         // Filter by view
         switch (currentView) {
             case 'owned':
-                query = query.eq('user_id', currentUserId);
+                // Tasks created by user (owner)
+                query = query.eq('user_id', currentUserId).neq('status', 'completed');
                 break;
             case 'subscribed':
-                query = query.eq('user_id', currentUserId);
+                // Tasks user has subscribed to
+                const { data: subscribedTasks } = await supabaseClient
+                    .from('task_subscriptions')
+                    .select('task_id')
+                    .eq('user_id', currentUserId);
+                
+                if (subscribedTasks && subscribedTasks.length > 0) {
+                    const taskIds = subscribedTasks.map(s => s.task_id);
+                    query = query.in('id', taskIds).neq('status', 'completed');
+                } else {
+                    // No subscriptions, return empty result
+                    query = query.eq('id', '00000000-0000-0000-0000-000000000000'); // Impossible ID
+                }
                 break;
             case 'created':
-                query = query.eq('user_id', currentUserId);
+                // Same as owned - tasks created by user
+                query = query.eq('user_id', currentUserId).neq('status', 'completed');
                 break;
             case 'assigned':
-                query = query.eq('user_id', currentUserId);
+                // Tasks assigned to user
+                query = query.eq('assigned_to', currentUserId).neq('status', 'completed');
                 break;
             case 'completed':
+                // Only completed tasks
                 query = query.eq('user_id', currentUserId).eq('status', 'completed');
                 break;
             case 'all':
             default:
-                query = query.eq('user_id', currentUserId);
+                // All tasks (excluding completed)
+                query = query.eq('user_id', currentUserId).neq('status', 'completed');
                 break;
         }
 
@@ -839,6 +856,7 @@ async function handleNewTask(e) {
     const dueDate = document.getElementById('taskDueDate')?.value;
     const priority = document.getElementById('taskPriority')?.value || 'medium';
     const status = document.getElementById('taskStatus')?.value || 'pending';
+    const assignedTo = document.getElementById('taskAssignedTo')?.value || null;
 
     if (!title) {
         alert('Vui lòng nhập tiêu đề task');
@@ -853,7 +871,8 @@ async function handleNewTask(e) {
             priority: priority,
             status: status,
             start_date: startDate || null,
-            due_date: dueDate || null
+            due_date: dueDate || null,
+            assigned_to: assignedTo || null
         };
 
         console.log('Creating task with data:', taskData);
@@ -1066,16 +1085,26 @@ function openCustomizeModal() {
 // Complete task
 async function completeTask(taskId) {
     try {
+        // Update task status to completed and set completed_at timestamp
         const { error } = await supabaseClient
             .from('tasks')
-            .update({ status: 'completed' })
+            .update({ 
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
             .eq('id', taskId)
             .eq('user_id', currentUserId);
 
         if (error) throw error;
 
+        // Task will be automatically hidden from views (except 'completed' view)
+        // because we filter out completed tasks in loadTasks()
         await loadTasks();
         updateStats();
+        
+        // Show success message
+        console.log('Task completed successfully:', taskId);
     } catch (error) {
         console.error('Error completing task:', error);
         alert('Có lỗi xảy ra khi cập nhật task');

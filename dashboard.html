@@ -209,11 +209,19 @@
                     <div class="form-group">
                         <label for="taskStatus">Status</label>
                         <select id="taskStatus">
-                            <option value="pending">Pending</option>
-                            <option value="in_progress" selected>In Progress</option>
+                            <option value="pending" selected>Pending</option>
+                            <option value="in_progress">In Progress</option>
                             <option value="completed">Completed</option>
                         </select>
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskAssignedTo">Assign To (Optional)</label>
+                    <select id="taskAssignedTo" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; background: var(--bg-primary); color: var(--text-primary);">
+                        <option value="">-- No one (unassigned) --</option>
+                        <!-- Will be populated with users -->
+                    </select>
+                    <small style="color: var(--text-secondary); font-size: 12px;">Select a user to assign this task to</small>
                 </div>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">Create Task</button>
