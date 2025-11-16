@@ -354,17 +354,19 @@ async function handleGoogleSignIn(response) {
         const avatarUrl = payload.picture;
         const emailVerified = payload.email_verified;
 
-        // Check if user exists
-        let { data: existingUser, error: checkError } = await supabaseClient
+        // Check if user exists by google_id or email
+        let { data: existingUsers, error: checkError } = await supabaseClient
             .from('users')
             .select('*')
-            .or(`google_id.eq.${googleId},email.eq.${email}`)
-            .single();
+            .or(`google_id.eq.${googleId},email.eq.${email}`);
 
         let userId;
+        let existingUser = null;
 
-        if (existingUser && !checkError) {
-            // User exists, update if needed
+        // Find matching user
+        if (existingUsers && existingUsers.length > 0) {
+            // Prefer user with matching google_id, otherwise use first match
+            existingUser = existingUsers.find(u => u.google_id === googleId) || existingUsers[0];
             userId = existingUser.id;
             
             // Update user info if logged in with Google
@@ -399,11 +401,14 @@ async function handleGoogleSignIn(response) {
                 .select()
                 .single();
 
-            if (insertError) throw insertError;
+            if (insertError) {
+                console.error('Insert user error:', insertError);
+                throw new Error('Không thể tạo tài khoản mới. Vui lòng thử lại.');
+            }
             userId = newUser.id;
 
             // Create default notification settings
-            await supabaseClient
+            const { error: settingsError } = await supabaseClient
                 .from('notification_settings')
                 .insert({
                     user_id: userId,
@@ -411,6 +416,11 @@ async function handleGoogleSignIn(response) {
                     reminder_before_hours: 24,
                     reminder_before_days: 1
                 });
+
+            if (settingsError) {
+                console.error('Settings error:', settingsError);
+                // Continue anyway, settings can be created later
+            }
         }
 
         // Create session
@@ -464,9 +474,23 @@ async function handleGoogleSignIn(response) {
         console.error('Google sign-in error:', error);
         const errorDiv = document.getElementById('loginError') || document.getElementById('registerError');
         if (errorDiv) {
-            errorDiv.textContent = 'Có lỗi xảy ra khi đăng nhập bằng Google';
+            // Show more detailed error message
+            let errorMessage = 'Có lỗi xảy ra khi đăng nhập bằng Google';
+            
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.code === '23505') {
+                errorMessage = 'Email hoặc tài khoản Google này đã được sử dụng';
+            } else if (error.code === '23503') {
+                errorMessage = 'Lỗi dữ liệu. Vui lòng thử lại.';
+            }
+            
+            errorDiv.textContent = errorMessage;
             errorDiv.style.display = 'block';
         }
+        
+        // Also show alert for better visibility
+        alert('Lỗi đăng nhập: ' + (error.message || 'Có lỗi xảy ra khi đăng nhập bằng Google'));
     }
 }
 
