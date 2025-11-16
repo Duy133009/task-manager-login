@@ -43,16 +43,24 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Get user ID
     const user = JSON.parse(userData);
     currentUserId = user.id;
+    console.log('Current user ID:', currentUserId);
     
     // Load full user data from database
-    const { data: fullUser } = await supabaseClient
+    const { data: fullUser, error: userError } = await supabaseClient
         .from('users')
         .select('*')
         .eq('id', user.id)
         .single();
     
+    if (userError) {
+        console.error('Error loading user data:', userError);
+    }
+    
     if (fullUser) {
         allUsers[fullUser.id] = fullUser;
+        console.log('User data loaded:', fullUser.email, fullUser.full_name);
+    } else {
+        console.warn('User data not found for id:', user.id);
     }
 
     // Setup event listeners
@@ -538,9 +546,20 @@ async function loadTasks() {
             query = query.order('created_at', { ascending: false });
         }
 
+        console.log('Executing query for user_id:', currentUserId, 'view:', currentView);
         const { data: tasks, error } = await query;
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase query error:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            throw error;
+        }
+
+        console.log('Loaded tasks:', tasks?.length || 0, tasks);
+        
+        if (!tasks || tasks.length === 0) {
+            console.warn('No tasks found for user_id:', currentUserId);
+        }
 
         allTasks = tasks || [];
 
