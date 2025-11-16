@@ -530,13 +530,19 @@ async function loadUserDataForTasks(tasks) {
     }
 }
 
-// Render tasks
+// Render tasks - Modern Card View
 function renderTasks(tasks) {
-    const tbody = document.getElementById('tasksTableBody');
-    if (!tbody) return;
+    const container = document.getElementById('tasksTableBody');
+    if (!container) return;
 
     if (tasks.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Chưa có tasks nào</td></tr>';
+        container.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
+                <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
+                <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có tasks nào</div>
+                <div style="font-size: 14px; color: var(--gray-400);">Tạo task mới để bắt đầu!</div>
+            </div>
+        `;
         return;
     }
 
@@ -561,15 +567,13 @@ function renderTasks(tasks) {
 
             // Group header
             html += `
-                <tr class="group-header-row">
-                    <td colspan="5" class="group-header">
-                        <div class="group-creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600;"'}>
-                            ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
-                        </div>
-                        <span>${escapeHtml(creatorName)}</span>
-                        <span class="group-count">${creatorTasks.length}</span>
-                    </td>
-                </tr>
+                <div class="group-header-card" style="margin-bottom: 16px; padding: 12px 20px; background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 12px;">
+                    <div class="group-creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600; width: 32px; height: 32px; border-radius: 50%; background: var(--primary);"'}>
+                        ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}" style="width: 32px; height: 32px; border-radius: 50%;">` : creatorInitial}
+                    </div>
+                    <span style="font-weight: 600; color: var(--gray-900);">${escapeHtml(creatorName)}</span>
+                    <span class="group-count" style="background: var(--primary-light); color: var(--primary); padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">${creatorTasks.length}</span>
+                </div>
             `;
 
             // Tasks in group
@@ -578,17 +582,17 @@ function renderTasks(tasks) {
             });
         });
 
-        tbody.innerHTML = html;
+        container.innerHTML = html;
     } else {
-        // No grouping
-        tbody.innerHTML = tasks.map(task => {
+        // No grouping - Card view
+        container.innerHTML = tasks.map(task => {
             const creator = allUsers[task.user_id];
             return createTaskRow(task, creator);
         }).join('');
     }
 }
 
-// Create task row HTML
+// Create task row HTML - Modern Card Design
 function createTaskRow(task, creator) {
     const creatorName = creator ? (creator.full_name || creator.username || creator.email) : 'Unknown';
     const creatorInitial = creatorName.charAt(0).toUpperCase();
@@ -597,38 +601,47 @@ function createTaskRow(task, creator) {
 
     const startDate = task.start_date ? new Date(task.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    
+    const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+    const priorityClass = task.priority || 'medium';
+    const statusClass = task.status || 'pending';
+    const completedClass = task.status === 'completed' ? 'completed' : '';
 
     return `
-        <tr class="task-row" data-task-id="${task.id}">
-            <td>
-                <input type="checkbox" class="task-checkbox" onchange="toggleTaskSelection(${task.id})">
-            </td>
-            <td>
-                <div class="task-title">
-                    <span class="task-expand-icon">→</span>
-                    <span class="task-title-text">${escapeHtml(task.title)}</span>
-                    <span class="task-indicators">0/1 2</span>
-                </div>
-            </td>
-            <td>
-                <div class="start-time">
-                    ${startDate ? `<span class="due-date-icon">📅</span> ${startDate}` : ''}
-                </div>
-            </td>
-            <td>
-                <div class="due-date">
-                    ${dueDate ? `<span class="due-date-icon">🔔</span> ${dueDate}` : ''}
-                </div>
-            </td>
-            <td>
-                <div class="creator-info">
-                    <div class="creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600;"'}>
-                        ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
+        <div class="task-card priority-${priorityClass} ${statusClass} ${completedClass}" data-task-id="${task.id}">
+            <div class="task-card-header">
+                <div class="task-card-main">
+                    <input type="checkbox" class="task-card-checkbox" ${task.status === 'completed' ? 'checked' : ''} onchange="completeTask(${task.id})">
+                    <div class="task-card-title" onclick="openEditModal(${task.id})">
+                        ${escapeHtml(task.title)}
                     </div>
-                    <span class="creator-name">${escapeHtml(creatorDisplayName)}</span>
                 </div>
-            </td>
-        </tr>
+                <div class="task-card-actions">
+                    <button class="task-card-action-btn" onclick="openEditModal(${task.id})" title="Edit">
+                        ✏️
+                    </button>
+                    <button class="task-card-action-btn" onclick="deleteTask(${task.id})" title="Delete">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+            ${task.description ? `<div class="task-card-description" style="color: var(--gray-600); font-size: 14px; margin-bottom: 12px; line-height: 1.5;">${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</div>` : ''}
+            <div class="task-card-footer">
+                <div class="task-card-meta">
+                    ${startDate ? `<span>📅 ${startDate}</span>` : ''}
+                    ${dueDate ? `<span class="${isOverdue ? 'text-danger' : ''}">🔔 ${dueDate}</span>` : ''}
+                </div>
+                <div style="display: flex; gap: 8px; margin-left: auto;">
+                    <span class="task-card-status ${statusClass}">${getStatusText(task.status)}</span>
+                    <span class="task-card-priority ${priorityClass}">${getPriorityText(task.priority)}</span>
+                </div>
+                <div class="creator-info" style="margin-left: auto;">
+                    <div class="creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600; width: 24px; height: 24px; border-radius: 50%; background: var(--primary);"'}>
+                        ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}" style="width: 24px; height: 24px; border-radius: 50%;">` : creatorInitial}
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 }
 

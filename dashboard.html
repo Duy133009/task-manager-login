@@ -160,28 +160,15 @@
                 <button class="customize-btn" onclick="openCustomizeModal()">Customize</button>
             </div>
 
-            <!-- Task Table -->
+            <!-- Task Cards Container -->
             <div class="task-table-container">
-                <table class="task-table">
-                    <thead>
-                        <tr>
-                            <th class="checkbox-col"></th>
-                            <th class="task-title-col">TASK TITLE</th>
-                            <th class="start-time-col">START TIME</th>
-                            <th class="due-date-col">
-                                DUE DATE
-                                <span class="sort-indicator">↑</span>
-                            </th>
-                            <th class="creator-col">CREATOR</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tasksTableBody">
-                        <!-- Tasks will be loaded here -->
-                        <tr>
-                            <td colspan="5" class="loading-cell">Đang tải tasks...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div id="tasksTableBody" class="task-cards-container">
+                    <!-- Tasks will be loaded here as cards -->
+                    <div style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                        <div style="font-size: 18px; font-weight: 500;">Đang tải tasks...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
