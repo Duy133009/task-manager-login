@@ -77,7 +77,6 @@ function setupEventListeners() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             // Switch between List and Kanban view
-            // For now, just reload tasks
             loadTasks();
         });
     });
@@ -110,6 +109,271 @@ function setupEventListeners() {
     });
 }
 
+// Modules Modal
+function openModulesModal() {
+    document.getElementById('modulesModal').style.display = 'block';
+    loadAvailableModules();
+}
+
+function closeModulesModal() {
+    document.getElementById('modulesModal').style.display = 'none';
+}
+
+// Load available modules from backend
+async function loadAvailableModules() {
+    const modulesList = document.getElementById('modulesList');
+    modulesList.innerHTML = '<div class="loading">Đang tải modules...</div>';
+
+    try {
+        // Get available modules from database
+        const { data: availableModules, error: modulesError } = await supabaseClient
+            .from('available_modules')
+            .select('*')
+            .eq('is_active', true)
+            .order('category', { ascending: true })
+            .order('module_name', { ascending: true });
+
+        if (modulesError) throw modulesError;
+
+        // Get user's selected modules
+        const { data: userModules, error: userModulesError } = await supabaseClient
+            .from('user_modules')
+            .select('module_key, is_enabled')
+            .eq('user_id', currentUserId);
+
+        if (userModulesError && userModulesError.code !== 'PGRST116') throw userModulesError;
+
+        const selectedModules = new Set();
+        if (userModules) {
+            userModules.forEach(um => {
+                if (um.is_enabled) {
+                    selectedModules.add(um.module_key);
+                }
+            });
+        }
+
+        if (!availableModules || availableModules.length === 0) {
+            modulesList.innerHTML = '<div class="empty-state">Chưa có modules nào</div>';
+            return;
+        }
+
+        // Render modules
+        modulesList.innerHTML = availableModules.map(module => {
+            const isSelected = selectedModules.has(module.module_key);
+            return `
+                <div class="module-card ${isSelected ? 'selected' : ''}" onclick="toggleModule('${module.module_key}')">
+                    <div class="module-icon">${module.icon || '📦'}</div>
+                    <div class="module-name">${escapeHtml(module.module_name)}</div>
+                    <div class="module-description">${escapeHtml(module.description || '')}</div>
+                    <input type="checkbox" class="module-checkbox" ${isSelected ? 'checked' : ''} 
+                           onchange="toggleModule('${module.module_key}')" 
+                           onclick="event.stopPropagation()">
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error loading modules:', error);
+        modulesList.innerHTML = '<div class="error">Có lỗi xảy ra khi tải modules</div>';
+    }
+}
+
+// Toggle module selection
+function toggleModule(moduleKey) {
+    const moduleCard = document.querySelector(`[onclick="toggleModule('${moduleKey}')"]`);
+    const checkbox = moduleCard.querySelector('.module-checkbox');
+    const isSelected = checkbox.checked;
+
+    if (isSelected) {
+        moduleCard.classList.add('selected');
+    } else {
+        moduleCard.classList.remove('selected');
+    }
+}
+
+// Save selected modules
+async function saveModules() {
+    try {
+        const checkboxes = document.querySelectorAll('.module-checkbox:checked');
+        const selectedModules = Array.from(checkboxes).map(cb => {
+            const moduleCard = cb.closest('.module-card');
+            const moduleKey = moduleCard.getAttribute('onclick').match(/'([^']+)'/)[1];
+            return moduleKey;
+        });
+
+        // Get available modules to get module info
+        const { data: availableModules } = await supabaseClient
+            .from('available_modules')
+            .select('*')
+            .in('module_key', selectedModules);
+
+        // Delete all user modules first
+        await supabaseClient
+            .from('user_modules')
+            .delete()
+            .eq('user_id', currentUserId);
+
+        // Insert selected modules
+        if (selectedModules.length > 0 && availableModules) {
+            const modulesToInsert = availableModules.map(module => ({
+                user_id: currentUserId,
+                module_key: module.module_key,
+                module_name: module.module_name,
+                is_enabled: true,
+                module_config: {}
+            }));
+
+            const { error: insertError } = await supabaseClient
+                .from('user_modules')
+                .insert(modulesToInsert);
+
+            if (insertError) throw insertError;
+        }
+
+        alert('Đã lưu modules thành công!');
+        closeModulesModal();
+    } catch (error) {
+        console.error('Error saving modules:', error);
+        alert('Có lỗi xảy ra khi lưu modules');
+    }
+}
+
+// Get user's enabled modules (for use in other parts of the app)
+async function getUserModules() {
+    try {
+        const { data: userModules, error } = await supabaseClient
+            .from('user_modules')
+            .select('module_key, module_name, module_config')
+            .eq('user_id', currentUserId)
+            .eq('is_enabled', true);
+
+        if (error) throw error;
+        return userModules || [];
+    } catch (error) {
+        console.error('Error getting user modules:', error);
+        return [];
+    }
+}
+
+// Display user info
+function displayUserInfo(user) {
+    const userName = user.full_name || user.username || user.email;
+    document.getElementById('userName').textContent = userName;
+    
+    // Display avatar
+    const avatarImg = document.getElementById('userAvatarImg');
+    const avatarText = document.getElementById('userAvatarText');
+    const profileAvatarImg = document.getElementById('profileAvatarImg');
+    const profileAvatarText = document.getElementById('profileAvatarText');
+    
+    if (user.avatar_url) {
+        avatarImg.src = user.avatar_url;
+        avatarImg.style.display = 'block';
+        avatarText.style.display = 'none';
+        profileAvatarImg.src = user.avatar_url;
+        profileAvatarImg.style.display = 'block';
+        profileAvatarText.style.display = 'none';
+    } else {
+        avatarImg.style.display = 'none';
+        avatarText.style.display = 'block';
+        avatarText.textContent = userName.charAt(0).toUpperCase();
+        profileAvatarImg.style.display = 'none';
+        profileAvatarText.style.display = 'block';
+        profileAvatarText.textContent = userName.charAt(0).toUpperCase();
+    }
+}
+
+// Profile Modal
+function openProfileModal() {
+    loadProfileData();
+    document.getElementById('profileModal').style.display = 'block';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+// Load profile data
+async function loadProfileData() {
+    try {
+        const { data: user, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', currentUserId)
+            .single();
+
+        if (error) throw error;
+
+        document.getElementById('profileFullName').value = user.full_name || '';
+        document.getElementById('profileUsername').value = user.username || '';
+        document.getElementById('profileEmail').value = user.email || '';
+        
+        // Display avatar in modal
+        const profileAvatarImg = document.getElementById('profileAvatarImg');
+        const profileAvatarText = document.getElementById('profileAvatarText');
+        
+        if (user.avatar_url) {
+            profileAvatarImg.src = user.avatar_url;
+            profileAvatarImg.style.display = 'block';
+            profileAvatarText.style.display = 'none';
+        } else {
+            profileAvatarImg.style.display = 'none';
+            profileAvatarText.style.display = 'block';
+            const name = user.full_name || user.username || user.email;
+            profileAvatarText.textContent = name.charAt(0).toUpperCase();
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        alert('Có lỗi xảy ra khi tải thông tin profile');
+    }
+}
+
+// Save profile
+async function handleSaveProfile(e) {
+    e.preventDefault();
+
+    const fullName = document.getElementById('profileFullName').value.trim();
+
+    if (!fullName) {
+        alert('Vui lòng nhập họ và tên');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('users')
+            .update({
+                full_name: fullName,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUserId);
+
+        if (error) throw error;
+
+        // Update localStorage
+        const userData = JSON.parse(localStorage.getItem('user_data'));
+        userData.full_name = fullName;
+        localStorage.setItem('user_data', JSON.stringify(userData));
+
+        // Reload user info
+        const { data: updatedUser } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', currentUserId)
+            .single();
+
+        if (updatedUser) {
+            displayUserInfo(updatedUser);
+        }
+
+        alert('Đã cập nhật profile thành công!');
+        closeProfileModal();
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Có lỗi xảy ra khi cập nhật profile');
+    }
+}
+
 // Switch view
 function switchView(view) {
     currentView = view;
@@ -130,7 +394,10 @@ function switchView(view) {
         'assigned': 'Assigned',
         'completed': 'Completed'
     };
-    document.getElementById('contentTitle').textContent = titles[view] || 'Tasks';
+    const titleEl = document.getElementById('contentTitle');
+    if (titleEl) {
+        titleEl.textContent = titles[view] || 'Tasks';
+    }
     
     // Reload tasks
     loadTasks();
@@ -139,6 +406,8 @@ function switchView(view) {
 // Load tasks
 async function loadTasks() {
     const tbody = document.getElementById('tasksTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Đang tải tasks...</td></tr>';
 
     try {
@@ -152,14 +421,12 @@ async function loadTasks() {
                 query = query.eq('user_id', currentUserId);
                 break;
             case 'subscribed':
-                // Tasks user is subscribed to (if you have a subscriptions table)
                 query = query.eq('user_id', currentUserId);
                 break;
             case 'created':
                 query = query.eq('user_id', currentUserId);
                 break;
             case 'assigned':
-                // Tasks assigned to user (if you have assignee field)
                 query = query.eq('user_id', currentUserId);
                 break;
             case 'completed':
@@ -220,6 +487,7 @@ async function loadUserDataForTasks(tasks) {
 // Render tasks
 function renderTasks(tasks) {
     const tbody = document.getElementById('tasksTableBody');
+    if (!tbody) return;
 
     if (tasks.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Chưa có tasks nào</td></tr>';
@@ -252,7 +520,7 @@ function renderTasks(tasks) {
                         <div class="group-creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;"'}>
                             ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
                         </div>
-                        <span>${creatorName}</span>
+                        <span>${escapeHtml(creatorName)}</span>
                         <span class="group-count">${creatorTasks.length}</span>
                     </td>
                 </tr>
@@ -330,8 +598,10 @@ async function updateNavCounts() {
             const ownedCount = tasks.length;
             const completedCount = tasks.filter(t => t.status === 'completed').length;
 
-            document.getElementById('ownedCount').textContent = ownedCount;
-            document.getElementById('subscribedCount').textContent = '0';
+            const ownedCountEl = document.getElementById('ownedCount');
+            const subscribedCountEl = document.getElementById('subscribedCount');
+            if (ownedCountEl) ownedCountEl.textContent = ownedCount;
+            if (subscribedCountEl) subscribedCountEl.textContent = '0';
         }
     } catch (error) {
         console.error('Error updating nav counts:', error);
@@ -340,30 +610,43 @@ async function updateNavCounts() {
 
 // Toggle task selection
 function toggleTaskSelection(taskId) {
-    // Handle task selection
     console.log('Toggle task:', taskId);
 }
 
 // New Task Modal
 function openNewTaskModal() {
-    document.getElementById('newTaskModal').style.display = 'block';
+    const modal = document.getElementById('newTaskModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
 }
 
 function closeNewTaskModal() {
-    document.getElementById('newTaskModal').style.display = 'none';
-    document.getElementById('newTaskForm').reset();
+    const modal = document.getElementById('newTaskModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    const form = document.getElementById('newTaskForm');
+    if (form) {
+        form.reset();
+    }
 }
 
 // Handle new task
 async function handleNewTask(e) {
     e.preventDefault();
 
-    const title = document.getElementById('taskTitle').value;
-    const description = document.getElementById('taskDescription').value;
-    const startDate = document.getElementById('taskStartDate').value;
-    const dueDate = document.getElementById('taskDueDate').value;
-    const priority = document.getElementById('taskPriority').value;
-    const status = document.getElementById('taskStatus').value;
+    const title = document.getElementById('taskTitle')?.value;
+    const description = document.getElementById('taskDescription')?.value;
+    const startDate = document.getElementById('taskStartDate')?.value;
+    const dueDate = document.getElementById('taskDueDate')?.value;
+    const priority = document.getElementById('taskPriority')?.value || 'medium';
+    const status = document.getElementById('taskStatus')?.value || 'pending';
+
+    if (!title) {
+        alert('Vui lòng nhập tiêu đề task');
+        return;
+    }
 
     try {
         const taskData = {
@@ -390,141 +673,12 @@ async function handleNewTask(e) {
     }
 }
 
-// Profile Modal
-function openProfileModal() {
-    loadProfileData();
-    document.getElementById('profileModal').style.display = 'block';
-}
-
-function closeProfileModal() {
-    document.getElementById('profileModal').style.display = 'none';
-}
-
-async function loadProfileData() {
-    try {
-        const { data: user, error } = await supabaseClient
-            .from('users')
-            .select('*')
-            .eq('id', currentUserId)
-            .single();
-
-        if (error) throw error;
-
-        document.getElementById('profileFullName').value = user.full_name || '';
-        document.getElementById('profileUsername').value = user.username || '';
-        document.getElementById('profileEmail').value = user.email || '';
-    } catch (error) {
-        console.error('Error loading profile:', error);
-    }
-}
-
-async function handleSaveProfile(e) {
-    e.preventDefault();
-
-    const fullName = document.getElementById('profileFullName').value;
-
-    try {
-        const { error } = await supabaseClient
-            .from('users')
-            .update({ full_name: fullName })
-            .eq('id', currentUserId);
-
-        if (error) throw error;
-
-        // Update localStorage
-        const userData = JSON.parse(localStorage.getItem('user_data'));
-        userData.full_name = fullName;
-        localStorage.setItem('user_data', JSON.stringify(userData));
-
-        // Update allUsers cache
-        if (allUsers[currentUserId]) {
-            allUsers[currentUserId].full_name = fullName;
-        }
-
-        closeProfileModal();
-        await loadTasks(); // Reload to update creator names
-        alert('Đã cập nhật profile thành công!');
-    } catch (error) {
-        console.error('Error saving profile:', error);
-        alert('Có lỗi xảy ra khi cập nhật profile');
-    }
-}
-
-// Settings Modal
-function openSettings() {
-    loadNotificationSettings();
-    document.getElementById('settingsModal').style.display = 'block';
-}
-
-function closeSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'none';
-}
-
-async function loadNotificationSettings() {
-    try {
-        const { data: settings, error } = await supabaseClient
-            .from('user_notification_settings')
-            .select('*')
-            .eq('user_id', currentUserId)
-            .single();
-
-        if (settings) {
-            document.getElementById('emailNotifications').checked = settings.email_notifications || false;
-            document.getElementById('reminderBeforeDays').value = settings.reminder_before_days || 1;
-            document.getElementById('reminderBeforeHours').value = settings.reminder_before_hours || 24;
-        }
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-async function handleSaveSettings(e) {
-    e.preventDefault();
-
-    const emailNotifications = document.getElementById('emailNotifications').checked;
-    const reminderBeforeDays = parseInt(document.getElementById('reminderBeforeDays').value);
-    const reminderBeforeHours = parseInt(document.getElementById('reminderBeforeHours').value);
-
-    try {
-        // Check if settings exist
-        const { data: existing } = await supabaseClient
-            .from('user_notification_settings')
-            .select('id')
-            .eq('user_id', currentUserId)
-            .single();
-
-        const settingsData = {
-            user_id: currentUserId,
-            email_notifications: emailNotifications,
-            reminder_before_days: reminderBeforeDays,
-            reminder_before_hours: reminderBeforeHours
-        };
-
-        if (existing) {
-            const { error } = await supabaseClient
-                .from('user_notification_settings')
-                .update(settingsData)
-                .eq('user_id', currentUserId);
-            if (error) throw error;
-        } else {
-            const { error } = await supabaseClient
-                .from('user_notification_settings')
-                .insert([settingsData]);
-            if (error) throw error;
-        }
-
-        closeSettingsModal();
-        alert('Đã lưu cài đặt thành công!');
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        alert('Có lỗi xảy ra khi lưu cài đặt');
-    }
-}
-
 // Toggle sidebar
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('open');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+    }
 }
 
 // Create new group
@@ -536,17 +690,351 @@ function createNewGroup() {
     }
 }
 
-// Logout
-function logout() {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('user_data');
-    window.location.href = 'index.html';
+// Complete task
+async function completeTask(taskId) {
+    try {
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update({ status: 'completed' })
+            .eq('id', taskId)
+            .eq('user_id', currentUserId);
+
+        if (error) throw error;
+
+        await loadTasks();
+        updateStats();
+    } catch (error) {
+        console.error('Error completing task:', error);
+        alert('Có lỗi xảy ra khi cập nhật task');
+    }
 }
 
-// Helper function
+// Delete task
+async function deleteTask(taskId) {
+    if (!confirm('Bạn có chắc muốn xóa task này?')) {
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('tasks')
+            .delete()
+            .eq('id', taskId)
+            .eq('user_id', currentUserId);
+
+        if (error) throw error;
+
+        await loadTasks();
+        updateStats();
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        alert('Có lỗi xảy ra khi xóa task');
+    }
+}
+
+// Open edit modal
+async function openEditModal(taskId) {
+    try {
+        const { data: task, error } = await supabaseClient
+            .from('tasks')
+            .select('*')
+            .eq('id', taskId)
+            .eq('user_id', currentUserId)
+            .single();
+
+        if (error) throw error;
+
+        document.getElementById('editTaskId').value = task.id;
+        document.getElementById('editTaskTitle').value = task.title;
+        document.getElementById('editTaskDescription').value = task.description || '';
+        document.getElementById('editTaskStatus').value = task.status;
+        document.getElementById('editTaskPriority').value = task.priority || 'medium';
+        
+        if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            const localDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000);
+            document.getElementById('editTaskDueDate').value = localDate.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('editTaskDueDate').value = '';
+        }
+
+        document.getElementById('editModal').style.display = 'block';
+    } catch (error) {
+        console.error('Error loading task:', error);
+        alert('Có lỗi xảy ra khi tải thông tin task');
+    }
+
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+// Edit task
+async function handleEditTask(e) {
+    e.preventDefault();
+
+    const taskId = document.getElementById('editTaskId').value;
+    const title = document.getElementById('editTaskTitle').value.trim();
+    const description = document.getElementById('editTaskDescription').value.trim();
+    const status = document.getElementById('editTaskStatus').value;
+    const priority = document.getElementById('editTaskPriority').value;
+    const dueDate = document.getElementById('editTaskDueDate').value;
+
+    if (!title) {
+        alert('Vui lòng nhập tiêu đề task');
+        return;
+    }
+
+    try {
+        const updateData = {
+            title: title,
+            description: description || null,
+            status: status,
+            priority: priority,
+            due_date: dueDate || null
+        };
+
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update(updateData)
+            .eq('id', taskId)
+            .eq('user_id', currentUserId);
+
+        if (error) throw error;
+
+        closeModal();
+        await loadTasks();
+        updateStats();
+    } catch (error) {
+        console.error('Error updating task:', error);
+        alert('Có lỗi xảy ra khi cập nhật task');
+    }
+}
+
+
+// Helper functions
+function getStatusText(status) {
+    const statusMap = {
+        'pending': 'Đang chờ',
+        'in_progress': 'Đang làm',
+        'completed': 'Hoàn thành'
+    };
+    return statusMap[status] || status;
+}
+
+function getPriorityText(priority) {
+    const priorityMap = {
+        'low': 'Thấp',
+        'medium': 'Trung bình',
+        'high': 'Cao'
+    };
+    return priorityMap[priority] || priority;
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Settings Modal
+function openSettings() {
+    document.getElementById('settingsModal').style.display = 'block';
+    loadNotificationSettings();
+}
+
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+// Load notification settings
+async function loadNotificationSettings() {
+    try {
+        const { data: settings, error } = await supabaseClient
+            .from('notification_settings')
+            .select('*')
+            .eq('user_id', currentUserId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+
+        if (settings) {
+            document.getElementById('emailNotifications').checked = settings.email_notifications;
+            document.getElementById('reminderBeforeDays').value = settings.reminder_before_days || 1;
+            document.getElementById('reminderBeforeHours').value = settings.reminder_before_hours || 24;
+        } else {
+            // Create default settings
+            const { data: newSettings } = await supabaseClient
+                .from('notification_settings')
+                .insert({
+                    user_id: currentUserId,
+                    email_notifications: true,
+                    reminder_before_hours: 24,
+                    reminder_before_days: 1
+                })
+                .select()
+                .single();
+
+            if (newSettings) {
+                document.getElementById('emailNotifications').checked = newSettings.email_notifications;
+                document.getElementById('reminderBeforeDays').value = newSettings.reminder_before_days;
+                document.getElementById('reminderBeforeHours').value = newSettings.reminder_before_hours;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+// Save notification settings
+async function handleSaveSettings(e) {
+    e.preventDefault();
+
+    const emailNotifications = document.getElementById('emailNotifications').checked;
+    const reminderBeforeDays = parseInt(document.getElementById('reminderBeforeDays').value) || 1;
+    const reminderBeforeHours = parseInt(document.getElementById('reminderBeforeHours').value) || 24;
+
+    try {
+        const { error } = await supabaseClient
+            .from('notification_settings')
+            .upsert({
+                user_id: currentUserId,
+                email_notifications: emailNotifications,
+                reminder_before_hours: reminderBeforeHours,
+                reminder_before_days: reminderBeforeDays,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            });
+
+        if (error) throw error;
+
+        alert('Đã lưu cài đặt thành công!');
+        closeSettingsModal();
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        alert('Có lỗi xảy ra khi lưu cài đặt');
+    }
+}
+
+// Check and send reminder emails (this would typically run on a server/cron job)
+async function checkAndSendReminders() {
+    try {
+        // Get all users with email notifications enabled and Google auth
+        const { data: users, error: usersError } = await supabaseClient
+            .from('users')
+            .select(`
+                id,
+                email,
+                auth_provider,
+                notification_settings (
+                    email_notifications,
+                    reminder_before_hours,
+                    reminder_before_days
+                )
+            `)
+            .eq('auth_provider', 'google')
+            .eq('email_verified', true);
+
+        if (usersError) throw usersError;
+
+        for (const user of users || []) {
+            const settings = user.notification_settings?.[0];
+            if (!settings || !settings.email_notifications) continue;
+
+            // Get tasks with upcoming deadlines
+            const reminderTime = new Date();
+            reminderTime.setHours(reminderTime.getHours() + settings.reminder_before_hours);
+            reminderTime.setDate(reminderTime.getDate() + settings.reminder_before_days);
+
+            const { data: tasks, error: tasksError } = await supabaseClient
+                .from('tasks')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('status', 'pending')
+                .lte('due_date', reminderTime.toISOString())
+                .gt('due_date', new Date().toISOString());
+
+            if (tasksError) continue;
+
+            // Check if email already sent
+            for (const task of tasks || []) {
+                const { data: existingLog } = await supabaseClient
+                    .from('email_logs')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('task_id', task.id)
+                    .eq('email_type', 'reminder')
+                    .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+                    .single();
+
+                if (!existingLog) {
+                    // Send email reminder
+                    await sendReminderEmail(user.email, task);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking reminders:', error);
+    }
+}
+
+// Send reminder email (this needs to be implemented with an email service)
+async function sendReminderEmail(email, task) {
+    try {
+        // TODO: Implement actual email sending
+        // You can use:
+        // - Gmail API with your client secret
+        // - SendGrid
+        // - Resend
+        // - Supabase Edge Function with email service
+        
+        // For now, just log it
+        console.log(`Would send email to ${email} for task: ${task.title}`);
+        
+        // Log email sent
+        await supabaseClient
+            .from('email_logs')
+            .insert({
+                user_id: task.user_id,
+                task_id: task.id,
+                email_type: 'reminder',
+                status: 'sent'
+            });
+
+        // In production, you would call an email service here
+        // Example with Gmail API or email service
+    } catch (error) {
+        console.error('Error sending email:', error);
+        await supabaseClient
+            .from('email_logs')
+            .insert({
+                user_id: task.user_id,
+                task_id: task.id,
+                email_type: 'reminder',
+                status: 'failed',
+                error_message: error.message
+            });
+    }
+}
+
+// Logout
+function logout() {
+    const token = localStorage.getItem('auth_token');
+    
+    if (token) {
+        supabaseClient
+            .from('user_sessions')
+            .delete()
+            .eq('token', token);
+    }
+
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_data');
+
+    window.location.href = 'index.html';
+}
+
