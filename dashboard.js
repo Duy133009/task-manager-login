@@ -517,10 +517,12 @@ function renderTasks(tasks) {
             html += `
                 <tr class="group-header-row">
                     <td colspan="5" class="group-header">
-                        <div class="group-creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: 600;"'}>
+                        <div class="group-creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600;"'}>
                             ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
                         </div>
-                        <span>${escapeHtml(creatorName)}</span>
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            <span>${escapeHtml(creatorName)}</span>
+                        </div>
                         <span class="group-count">${creatorTasks.length}</span>
                     </td>
                 </tr>
