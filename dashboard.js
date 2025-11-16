@@ -37,8 +37,19 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Get user ID
     const user = JSON.parse(userData);
     currentUserId = user.id;
-    document.getElementById('userName').textContent = 
-        user.full_name || user.username || user.email;
+    
+    // Load full user data from database
+    const { data: fullUser } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+    
+    if (fullUser) {
+        displayUserInfo(fullUser);
+    } else {
+        displayUserInfo(user);
+    }
 
     // Load tasks
     await loadTasks();
@@ -79,11 +90,134 @@ function setupEventListeners() {
         if (e.target.classList.contains('modal')) {
             closeModal();
             closeSettingsModal();
+            closeProfileModal();
         }
     });
 
     // Settings form
     document.getElementById('settingsForm').addEventListener('submit', handleSaveSettings);
+    
+    // Profile form
+    document.getElementById('profileForm').addEventListener('submit', handleSaveProfile);
+}
+
+// Display user info
+function displayUserInfo(user) {
+    const userName = user.full_name || user.username || user.email;
+    document.getElementById('userName').textContent = userName;
+    
+    // Display avatar
+    const avatarImg = document.getElementById('userAvatarImg');
+    const avatarText = document.getElementById('userAvatarText');
+    const profileAvatarImg = document.getElementById('profileAvatarImg');
+    const profileAvatarText = document.getElementById('profileAvatarText');
+    
+    if (user.avatar_url) {
+        avatarImg.src = user.avatar_url;
+        avatarImg.style.display = 'block';
+        avatarText.style.display = 'none';
+        profileAvatarImg.src = user.avatar_url;
+        profileAvatarImg.style.display = 'block';
+        profileAvatarText.style.display = 'none';
+    } else {
+        avatarImg.style.display = 'none';
+        avatarText.style.display = 'block';
+        avatarText.textContent = userName.charAt(0).toUpperCase();
+        profileAvatarImg.style.display = 'none';
+        profileAvatarText.style.display = 'block';
+        profileAvatarText.textContent = userName.charAt(0).toUpperCase();
+    }
+}
+
+// Profile Modal
+function openProfileModal() {
+    loadProfileData();
+    document.getElementById('profileModal').style.display = 'block';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+// Load profile data
+async function loadProfileData() {
+    try {
+        const { data: user, error } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', currentUserId)
+            .single();
+
+        if (error) throw error;
+
+        document.getElementById('profileFullName').value = user.full_name || '';
+        document.getElementById('profileUsername').value = user.username || '';
+        document.getElementById('profileEmail').value = user.email || '';
+        
+        // Display avatar in modal
+        const profileAvatarImg = document.getElementById('profileAvatarImg');
+        const profileAvatarText = document.getElementById('profileAvatarText');
+        
+        if (user.avatar_url) {
+            profileAvatarImg.src = user.avatar_url;
+            profileAvatarImg.style.display = 'block';
+            profileAvatarText.style.display = 'none';
+        } else {
+            profileAvatarImg.style.display = 'none';
+            profileAvatarText.style.display = 'block';
+            const name = user.full_name || user.username || user.email;
+            profileAvatarText.textContent = name.charAt(0).toUpperCase();
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        alert('Có lỗi xảy ra khi tải thông tin profile');
+    }
+}
+
+// Save profile
+async function handleSaveProfile(e) {
+    e.preventDefault();
+
+    const fullName = document.getElementById('profileFullName').value.trim();
+
+    if (!fullName) {
+        alert('Vui lòng nhập họ và tên');
+        return;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('users')
+            .update({
+                full_name: fullName,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUserId);
+
+        if (error) throw error;
+
+        // Update localStorage
+        const userData = JSON.parse(localStorage.getItem('user_data'));
+        userData.full_name = fullName;
+        localStorage.setItem('user_data', JSON.stringify(userData));
+
+        // Reload user info
+        const { data: updatedUser } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', currentUserId)
+            .single();
+
+        if (updatedUser) {
+            displayUserInfo(updatedUser);
+        }
+
+        alert('Đã cập nhật profile thành công!');
+        closeProfileModal();
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Có lỗi xảy ra khi cập nhật profile');
+    }
 }
 
 // Load tasks
