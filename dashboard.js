@@ -71,6 +71,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     currentUserId = user.id;
     console.log('Current user ID:', currentUserId);
     
+    // Set auth token for Supabase client to enable RLS
+    // Note: We're using custom auth, so we need to set the session manually
+    // For now, RLS policy allows all users to view all tasks (qual: "true")
+    // In production, you should update RLS policy to check auth.uid() = user_id
+    
     // Load full user data from database
     const { data: fullUser, error: userError } = await supabaseClient
         .from('users')
