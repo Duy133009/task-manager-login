@@ -129,19 +129,19 @@ body {
     font-size: 20px;
     cursor: pointer;
     padding: 8px;
-    color: #666;
+    color: var(--text-secondary);
     border-radius: 4px;
     transition: background 0.2s;
 }
 
 .hamburger-menu:hover {
-    background: #f0f0f0;
+    background: var(--bg-tertiary);
 }
 
 .page-title {
     font-size: 18px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -151,13 +151,13 @@ body {
     font-size: 20px;
     cursor: pointer;
     padding: 4px 8px;
-    color: #666;
+    color: var(--text-secondary);
     border-radius: 4px;
     transition: background 0.2s;
 }
 
 .ellipsis-btn:hover {
-    background: #f0f0f0;
+    background: var(--bg-tertiary);
 }
 
 .header-right {
@@ -199,18 +199,18 @@ body {
 
 .layout-btn {
     background: none;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
-    color: #666;
+    color: var(--text-secondary);
     transition: all 0.2s;
 }
 
 .layout-btn:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
+    background: var(--bg-tertiary);
+    border-color: var(--gray-400);
 }
 
 .btn-logout {
@@ -293,7 +293,7 @@ body {
     padding: 8px 0;
     font-size: 12px;
     font-weight: 600;
-    color: #666;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -333,7 +333,7 @@ body {
 }
 
 .nav-item:hover {
-    background: #f5f5f5;
+    background: var(--bg-tertiary);
 }
 
 .nav-item.active {
@@ -471,8 +471,8 @@ body {
 }
 
 .status-btn:hover, .filter-btn:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
+    background: var(--bg-tertiary);
+    border-color: var(--gray-400);
 }
 
 .status-btn.active {
@@ -541,7 +541,7 @@ body {
 }
 
 .dropdown-item:hover {
-    background: #f5f5f5;
+    background: var(--bg-tertiary);
 }
 
 .dropdown-item:first-child {
@@ -664,20 +664,20 @@ body {
     width: 32px;
     height: 32px;
     border: none;
-    background: var(--gray-100);
+    background: var(--bg-tertiary);
     border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all var(--transition-fast);
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
 .task-card-action-btn:hover {
-    background: var(--gray-200);
-    color: var(--gray-900);
+    background: var(--gray-300);
+    color: var(--text-primary);
 }
 
 .task-card-description {
@@ -1003,19 +1003,20 @@ body {
     top: 20px;
     font-size: 28px;
     font-weight: bold;
-    color: #999;
+    color: var(--text-secondary);
     cursor: pointer;
     line-height: 1;
+    transition: color var(--transition-base);
 }
 
 .close:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .modal-content h2 {
     margin-bottom: 20px;
     font-size: 20px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .form-group {
@@ -1027,7 +1028,7 @@ body {
     margin-bottom: 6px;
     font-size: 14px;
     font-weight: 500;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .form-group input,
@@ -1035,11 +1036,13 @@ body {
 .form-group select {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 14px;
     font-family: inherit;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background-color var(--transition-base), color var(--transition-base);
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .form-group input:focus,
