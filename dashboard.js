@@ -549,7 +549,7 @@ function createTaskRow(task, creator) {
     const creatorName = creator ? (creator.full_name || creator.username || creator.email) : 'Unknown';
     const creatorInitial = creatorName.charAt(0).toUpperCase();
     const avatarUrl = creator?.avatar_url;
-    const creatorDisplayName = creatorName.length > 15 ? creatorName.substring(0, 15) + '...' : creatorName;
+    const creatorDisplayName = creatorName.length > 20 ? creatorName.substring(0, 20) + '...' : creatorName;
 
     const startDate = task.start_date ? new Date(task.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
@@ -560,10 +560,19 @@ function createTaskRow(task, creator) {
                 <input type="checkbox" class="task-checkbox" onchange="toggleTaskSelection(${task.id})">
             </td>
             <td>
-                <div class="task-title">
-                    <span class="task-expand-icon">→</span>
-                    <span class="task-title-text">${escapeHtml(task.title)}</span>
-                    <span class="task-indicators">0/1 2</span>
+                <div class="task-title-with-creator">
+                    <div class="task-creator-avatar-small">
+                        <div class="creator-avatar-small" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600;"'}>
+                            ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
+                        </div>
+                        <span class="task-creator-name-small">${escapeHtml(creatorDisplayName)}</span>
+                        <span class="task-count-badge">1</span>
+                    </div>
+                    <div class="task-title-content">
+                        <span class="task-expand-icon">→</span>
+                        <span class="task-title-text">${escapeHtml(task.title)}</span>
+                        <span class="task-indicators">0/1 2</span>
+                    </div>
                 </div>
             </td>
             <td>
