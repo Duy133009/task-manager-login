@@ -556,18 +556,47 @@ async function loadTasks() {
                 
                 const subscribedTaskIds = allSubscribedTasks?.map(s => s.task_id) || [];
                 
-                // Build OR condition for owned, assigned, or subscribed
+                // Get all task IDs that user should see
+                const allTaskIds = new Set();
+                
+                // Get owned tasks
+                const { data: ownedTaskIds } = await supabaseClient
+                    .from('tasks')
+                    .select('id')
+                    .eq('user_id', currentUserId)
+                    .neq('status', 'completed');
+                if (ownedTaskIds) {
+                    ownedTaskIds.forEach(t => allTaskIds.add(t.id));
+                }
+                
+                // Get assigned tasks
+                const { data: assignedTaskIds } = await supabaseClient
+                    .from('tasks')
+                    .select('id')
+                    .eq('assigned_to', currentUserId)
+                    .neq('status', 'completed');
+                if (assignedTaskIds) {
+                    assignedTaskIds.forEach(t => allTaskIds.add(t.id));
+                }
+                
+                // Add subscribed tasks
                 if (subscribedTaskIds.length > 0) {
-                    // Use PostgREST OR syntax
-                    const orConditions = [
-                        `user_id.eq.${currentUserId}`,
-                        `assigned_to.eq.${currentUserId}`,
-                        `id.in.(${subscribedTaskIds.join(',')})`
-                    ];
-                    query = query.or(orConditions.join(',')).neq('status', 'completed');
+                    const { data: subscribedTaskData } = await supabaseClient
+                        .from('tasks')
+                        .select('id')
+                        .in('id', subscribedTaskIds)
+                        .neq('status', 'completed');
+                    if (subscribedTaskData) {
+                        subscribedTaskData.forEach(t => allTaskIds.add(t.id));
+                    }
+                }
+                
+                // Query all tasks by IDs
+                if (allTaskIds.size > 0) {
+                    query = query.in('id', Array.from(allTaskIds));
                 } else {
-                    // No subscriptions, just owned and assigned
-                    query = query.or(`user_id.eq.${currentUserId},assigned_to.eq.${currentUserId}`).neq('status', 'completed');
+                    // No tasks, return empty result
+                    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
                 }
                 break;
         }
