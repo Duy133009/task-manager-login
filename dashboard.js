@@ -710,14 +710,37 @@ function createTaskRow(task, creator) {
     const avatarUrl = creator?.avatar_url;
     const creatorDisplayName = creatorName.length > 20 ? creatorName.substring(0, 20) + '...' : creatorName;
 
-    const startDate = task.start_date ? new Date(task.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-    const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    // Safely parse dates with validation
+    let startDate = '';
+    let dueDate = '';
+    let startDateFormatted = '';
+    let dueDateFormatted = '';
+    let isOverdue = false;
     
-    // Format dates for display
-    const startDateFormatted = task.start_date ? new Date(task.start_date + 'T00:00:00').toISOString().split('T')[0] : '';
-    const dueDateFormatted = task.due_date ? new Date(task.due_date + 'T00:00:00').toISOString().split('T')[0] : '';
+    if (task.start_date) {
+        try {
+            const startDateObj = new Date(task.start_date);
+            if (!isNaN(startDateObj.getTime())) {
+                startDate = startDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                startDateFormatted = startDateObj.toISOString().split('T')[0];
+            }
+        } catch (e) {
+            console.warn('Invalid start_date for task:', task.id, task.start_date);
+        }
+    }
     
-    const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
+    if (task.due_date) {
+        try {
+            const dueDateObj = new Date(task.due_date);
+            if (!isNaN(dueDateObj.getTime())) {
+                dueDate = dueDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                dueDateFormatted = dueDateObj.toISOString().split('T')[0];
+                isOverdue = dueDateObj < new Date() && task.status !== 'completed';
+            }
+        } catch (e) {
+            console.warn('Invalid due_date for task:', task.id, task.due_date);
+        }
+    }
     const priorityClass = task.priority || 'medium';
     const statusClass = task.status || 'pending';
     const completedClass = task.status === 'completed' ? 'completed' : '';
