@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Nhập - Quản Lý Task</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Quản Lý Task</h1>
+                <p>Đăng nhập để tiếp tục</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login">Đăng Nhập</button>
+                <button class="tab-btn" data-tab="register">Đăng Ký</button>
+            </div>
+
+            <!-- Form Đăng Nhập -->
+            <form id="loginForm" class="form active">
+                <div class="form-group">
+                    <label for="loginUsername">Tên đăng nhập hoặc Email</label>
+                    <input 
+                        type="text" 
+                        id="loginUsername" 
+                        name="username" 
+                        placeholder="Nhập tên đăng nhập hoặc email"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">Mật khẩu</label>
+                    <div class="password-input">
+                        <input 
+                            type="password" 
+                            id="loginPassword" 
+                            name="password" 
+                            placeholder="Nhập mật khẩu"
+                            required
+                            autocomplete="current-password"
+                        >
+                        <button type="button" class="toggle-password" data-target="loginPassword">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe">
+                        <span>Ghi nhớ đăng nhập</span>
+                    </label>
+                    <a href="#" class="forgot-password">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Đăng Nhập</span>
+                    <span class="btn-loader" style="display: none;">⏳</span>
+                </button>
+
+                <div class="divider">
+                    <span>hoặc</span>
+                </div>
+
+                <div id="googleSignInButton" class="google-signin-btn"></div>
+
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+
+            <!-- Form Đăng Ký -->
+            <form id="registerForm" class="form">
+                <div class="form-group">
+                    <label for="registerFullName">Họ và Tên</label>
+                    <input 
+                        type="text" 
+                        id="registerFullName" 
+                        name="fullName" 
+                        placeholder="Nhập họ và tên"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="registerUsername">Tên đăng nhập</label>
+                    <input 
+                        type="text" 
+                        id="registerUsername" 
+                        name="username" 
+                        placeholder="Nhập tên đăng nhập"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input 
+                        type="email" 
+                        id="registerEmail" 
+                        name="email" 
+                        placeholder="Nhập email"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPassword">Mật khẩu</label>
+                    <div class="password-input">
+                        <input 
+                            type="password" 
+                            id="registerPassword" 
+                            name="password" 
+                            placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
+                            required
+                            autocomplete="new-password"
+                            minlength="6"
+                        >
+                        <button type="button" class="toggle-password" data-target="registerPassword">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Xác nhận mật khẩu</label>
+                    <div class="password-input">
+                        <input 
+                            type="password" 
+                            id="confirmPassword" 
+                            name="confirmPassword" 
+                            placeholder="Nhập lại mật khẩu"
+                            required
+                            autocomplete="new-password"
+                            minlength="6"
+                        >
+                        <button type="button" class="toggle-password" data-target="confirmPassword">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Đăng Ký</span>
+                    <span class="btn-loader" style="display: none;">⏳</span>
+                </button>
+
+                <div id="registerError" class="error-message" style="display: none;"></div>
+            </form>
+
+            <div id="successMessage" class="success-message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+
