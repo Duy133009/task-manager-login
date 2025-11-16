@@ -123,9 +123,35 @@
                     <span class="filter-icon">🔍</span>
                     <span id="filterText">Filter</span>
                 </button>
-                <div class="sort-group" onclick="openSortMenu()" style="cursor: pointer;">
+                <div class="sort-group" onclick="openSortMenu(event)" style="cursor: pointer; position: relative;">
                     <span class="sort-icon">⇅</span>
                     <span id="sortText">Sort by: Due Date</span>
+                    <div id="sortMenu" class="dropdown-menu" style="display: none;">
+                        <div class="dropdown-item" onclick="setSort('due_date', true)">
+                            <span>Due Date ↑</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('due_date', false)">
+                            <span>Due Date ↓</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('created_at', false)">
+                            <span>Created Date ↓</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('created_at', true)">
+                            <span>Created Date ↑</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('title', true)">
+                            <span>Title A-Z</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('title', false)">
+                            <span>Title Z-A</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('priority', false)">
+                            <span>Priority (High to Low)</span>
+                        </div>
+                        <div class="dropdown-item" onclick="setSort('priority', true)">
+                            <span>Priority (Low to High)</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="group-by" onclick="toggleGroupBy()" style="cursor: pointer;">
                     <span class="group-icon">📊</span>
