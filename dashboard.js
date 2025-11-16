@@ -547,8 +547,28 @@ async function loadTasks() {
                 break;
             case 'all':
             default:
-                // All tasks (excluding completed)
-                query = query.eq('user_id', currentUserId).neq('status', 'completed');
+                // All active tasks (owned, assigned, or subscribed) - hide completed
+                // First get subscribed task IDs
+                const { data: allSubscribedTasks } = await supabaseClient
+                    .from('task_subscriptions')
+                    .select('task_id')
+                    .eq('user_id', currentUserId);
+                
+                const subscribedTaskIds = allSubscribedTasks?.map(s => s.task_id) || [];
+                
+                // Build OR condition for owned, assigned, or subscribed
+                if (subscribedTaskIds.length > 0) {
+                    // Use PostgREST OR syntax
+                    const orConditions = [
+                        `user_id.eq.${currentUserId}`,
+                        `assigned_to.eq.${currentUserId}`,
+                        `id.in.(${subscribedTaskIds.join(',')})`
+                    ];
+                    query = query.or(orConditions.join(',')).neq('status', 'completed');
+                } else {
+                    // No subscriptions, just owned and assigned
+                    query = query.or(`user_id.eq.${currentUserId},assigned_to.eq.${currentUserId}`).neq('status', 'completed');
+                }
                 break;
         }
 
@@ -803,20 +823,44 @@ function createTaskRow(task, creator) {
 // Update navigation counts
 async function updateNavCounts() {
     try {
-        const { data: tasks } = await supabaseClient
+        // Count owned tasks (excluding completed)
+        const { data: ownedTasks } = await supabaseClient
             .from('tasks')
-            .select('id, status')
+            .select('id')
+            .eq('user_id', currentUserId)
+            .neq('status', 'completed');
+        
+        // Count assigned tasks (excluding completed)
+        const { data: assignedTasks } = await supabaseClient
+            .from('tasks')
+            .select('id')
+            .eq('assigned_to', currentUserId)
+            .neq('status', 'completed');
+        
+        // Count subscribed tasks (excluding completed)
+        const { data: subscribedTaskIds } = await supabaseClient
+            .from('task_subscriptions')
+            .select('task_id')
             .eq('user_id', currentUserId);
-
-        if (tasks) {
-            const ownedCount = tasks.length;
-            const completedCount = tasks.filter(t => t.status === 'completed').length;
-
-            const ownedCountEl = document.getElementById('ownedCount');
-            const subscribedCountEl = document.getElementById('subscribedCount');
-            if (ownedCountEl) ownedCountEl.textContent = ownedCount;
-            if (subscribedCountEl) subscribedCountEl.textContent = '0';
+        
+        let subscribedCount = 0;
+        if (subscribedTaskIds && subscribedTaskIds.length > 0) {
+            const taskIds = subscribedTaskIds.map(s => s.task_id);
+            const { data: subscribedTasks } = await supabaseClient
+                .from('tasks')
+                .select('id')
+                .in('id', taskIds)
+                .neq('status', 'completed');
+            subscribedCount = subscribedTasks?.length || 0;
         }
+
+        const ownedCount = ownedTasks?.length || 0;
+        const assignedCount = assignedTasks?.length || 0;
+
+        const ownedCountEl = document.getElementById('ownedCount');
+        const subscribedCountEl = document.getElementById('subscribedCount');
+        if (ownedCountEl) ownedCountEl.textContent = ownedCount;
+        if (subscribedCountEl) subscribedCountEl.textContent = subscribedCount;
     } catch (error) {
         console.error('Error updating nav counts:', error);
     }
@@ -828,10 +872,44 @@ function toggleTaskSelection(taskId) {
 }
 
 // New Task Modal
-function openNewTaskModal() {
+async function openNewTaskModal() {
     const modal = document.getElementById('newTaskModal');
     if (modal) {
         modal.style.display = 'block';
+        // Load users for assignment dropdown
+        await loadUsersForAssignment();
+    }
+}
+
+// Load users for assignment dropdown
+async function loadUsersForAssignment() {
+    try {
+        const { data: users, error } = await supabaseClient
+            .from('users')
+            .select('id, full_name, username, email')
+            .neq('id', currentUserId) // Exclude current user
+            .order('full_name', { ascending: true });
+        
+        if (error) throw error;
+        
+        const assignedToSelect = document.getElementById('taskAssignedTo');
+        if (assignedToSelect) {
+            // Clear existing options except the first one
+            assignedToSelect.innerHTML = '<option value="">-- No one (unassigned) --</option>';
+            
+            // Add users
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    const displayName = user.full_name || user.username || user.email;
+                    option.textContent = displayName;
+                    assignedToSelect.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading users for assignment:', error);
     }
 }
 
