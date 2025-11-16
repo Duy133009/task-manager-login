@@ -815,7 +815,7 @@ function createTaskRow(task, creator) {
         <div class="task-card priority-${priorityClass} ${statusClass} ${completedClass}" data-task-id="${task.id}">
             <div class="task-card-header">
                 <div class="task-card-main">
-                    <input type="checkbox" class="task-card-checkbox" ${task.status === 'completed' ? 'checked' : ''} onchange="completeTask(${task.id})">
+                    <input type="checkbox" class="task-card-checkbox" ${task.status === 'completed' ? 'checked' : ''} onchange="handleTaskCheckboxChange(${task.id}, this.checked)">
                     <div class="task-card-title" onclick="openEditModal(${task.id})">
                         ${escapeHtml(task.title)}
                     </div>
@@ -1189,9 +1189,27 @@ function openCustomizeModal() {
     alert('Customize feature coming soon!');
 }
 
+// Handle task checkbox change (complete/uncomplete)
+async function handleTaskCheckboxChange(taskId, isChecked) {
+    try {
+        if (isChecked) {
+            // Mark as completed
+            await completeTask(taskId);
+        } else {
+            // Mark as uncompleted (change back to pending)
+            await uncompleteTask(taskId);
+        }
+    } catch (error) {
+        console.error('Error handling task checkbox:', error);
+        alert('Có lỗi xảy ra khi cập nhật task');
+    }
+}
+
 // Complete task
 async function completeTask(taskId) {
     try {
+        console.log('Completing task:', taskId);
+        
         // Update task status to completed and set completed_at timestamp
         const { error } = await supabaseClient
             .from('tasks')
@@ -1203,18 +1221,52 @@ async function completeTask(taskId) {
             .eq('id', taskId)
             .eq('user_id', currentUserId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
 
+        console.log('Task completed successfully, reloading tasks...');
+        
         // Task will be automatically hidden from views (except 'completed' view)
         // because we filter out completed tasks in loadTasks()
         await loadTasks();
-        updateStats();
+        await updateNavCounts();
         
         // Show success message
-        console.log('Task completed successfully:', taskId);
+        console.log('Task completed and hidden from active views');
     } catch (error) {
         console.error('Error completing task:', error);
+        alert('Có lỗi xảy ra khi cập nhật task: ' + (error.message || 'Unknown error'));
+        // Reload to reset checkbox state
+        await loadTasks();
+    }
+}
+
+// Uncomplete task (mark as pending)
+async function uncompleteTask(taskId) {
+    try {
+        console.log('Uncompleting task:', taskId);
+        
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update({ 
+                status: 'pending',
+                completed_at: null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', taskId)
+            .eq('user_id', currentUserId);
+
+        if (error) throw error;
+
+        console.log('Task uncompleted successfully, reloading tasks...');
+        await loadTasks();
+        await updateNavCounts();
+    } catch (error) {
+        console.error('Error uncompleting task:', error);
         alert('Có lỗi xảy ra khi cập nhật task');
+        await loadTasks();
     }
 }
 
