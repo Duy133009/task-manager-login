@@ -298,18 +298,22 @@ window.addEventListener('DOMContentLoaded', async () => {
             });
     }
 
-    // Initialize Firebase
-    try {
-        if (typeof window.firebaseApp !== 'undefined' && typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_API_KEY') {
-            firebaseApp = window.firebaseApp(firebaseConfig);
-            firebaseAuthInstance = window.firebaseAuth(firebaseApp);
-            console.log('Firebase initialized successfully');
-        } else {
-            console.warn('Firebase chưa được cấu hình. Vui lòng cập nhật firebase-config.js');
+    // Initialize Firebase - wait a bit for modules to load
+    setTimeout(() => {
+        try {
+            if (typeof window.firebaseApp !== 'undefined' && typeof firebaseConfig !== 'undefined' && firebaseConfig.apiKey !== 'YOUR_API_KEY') {
+                firebaseApp = window.firebaseApp(firebaseConfig);
+                firebaseAuthInstance = window.firebaseAuth(firebaseApp);
+                console.log('Firebase initialized successfully', firebaseAuthInstance);
+            } else {
+                console.warn('Firebase chưa được cấu hình. Vui lòng cập nhật firebase-config.js');
+                console.log('firebaseApp:', typeof window.firebaseApp);
+                console.log('firebaseConfig:', typeof firebaseConfig);
+            }
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
         }
-    } catch (error) {
-        console.error('Firebase initialization error:', error);
-    }
+    }, 500);
 });
 
 // Sign in with Google using Firebase (global function)
@@ -321,6 +325,7 @@ async function signInWithGoogle() {
             try {
                 firebaseApp = window.firebaseApp(firebaseConfig);
                 firebaseAuthInstance = window.firebaseAuth(firebaseApp);
+                console.log('Firebase initialized in signInWithGoogle', firebaseAuthInstance);
             } catch (error) {
                 console.error('Firebase init error:', error);
             }
@@ -332,10 +337,22 @@ async function signInWithGoogle() {
         }
     }
 
+    // Check if signInWithPopup is available
+    if (typeof window.signInWithPopup !== 'function') {
+        console.error('signInWithPopup is not available');
+        const errorDiv = document.getElementById('loginError') || document.getElementById('registerError');
+        if (errorDiv) {
+            errorDiv.textContent = 'Lỗi: Firebase Auth chưa được load. Vui lòng refresh trang.';
+            errorDiv.style.display = 'block';
+        }
+        return;
+    }
+
     try {
         const provider = new window.GoogleAuthProvider();
         
         // Sign in with popup - use imported function
+        console.log('Calling signInWithPopup with:', firebaseAuthInstance, provider);
         const result = await window.signInWithPopup(firebaseAuthInstance, provider);
         const user = result.user;
         
