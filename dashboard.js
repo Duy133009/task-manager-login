@@ -306,35 +306,56 @@ function closeProfileModal() {
 // Load profile data
 async function loadProfileData() {
     try {
+        if (!currentUserId) {
+            console.error('No current user ID');
+            alert('Vui lòng đăng nhập lại');
+            return;
+        }
+
         const { data: user, error } = await supabaseClient
             .from('users')
             .select('*')
             .eq('id', currentUserId)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
 
-        document.getElementById('profileFullName').value = user.full_name || '';
-        document.getElementById('profileUsername').value = user.username || '';
-        document.getElementById('profileEmail').value = user.email || '';
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Set form values safely
+        const fullNameInput = document.getElementById('profileFullName');
+        const usernameInput = document.getElementById('profileUsername');
+        const emailInput = document.getElementById('profileEmail');
         
-        // Display avatar in modal
+        if (fullNameInput) fullNameInput.value = user.full_name || '';
+        if (usernameInput) usernameInput.value = user.username || '';
+        if (emailInput) emailInput.value = user.email || '';
+        
+        // Display avatar in modal (if elements exist)
         const profileAvatarImg = document.getElementById('profileAvatarImg');
         const profileAvatarText = document.getElementById('profileAvatarText');
         
-        if (user.avatar_url) {
-            profileAvatarImg.src = user.avatar_url;
-            profileAvatarImg.style.display = 'block';
-            profileAvatarText.style.display = 'none';
-        } else {
-            profileAvatarImg.style.display = 'none';
-            profileAvatarText.style.display = 'block';
-            const name = user.full_name || user.username || user.email;
-            profileAvatarText.textContent = name.charAt(0).toUpperCase();
+        if (profileAvatarImg && profileAvatarText) {
+            if (user.avatar_url) {
+                profileAvatarImg.src = user.avatar_url;
+                profileAvatarImg.style.display = 'block';
+                profileAvatarText.style.display = 'none';
+            } else {
+                profileAvatarImg.style.display = 'none';
+                profileAvatarText.style.display = 'block';
+                const name = user.full_name || user.username || user.email;
+                profileAvatarText.textContent = name ? name.charAt(0).toUpperCase() : '?';
+            }
         }
     } catch (error) {
         console.error('Error loading profile:', error);
-        alert('Có lỗi xảy ra khi tải thông tin profile');
+        const errorMessage = error.message || 'Có lỗi xảy ra khi tải thông tin profile';
+        alert(`Lỗi: ${errorMessage}\n\nChi tiết: ${JSON.stringify(error, null, 2)}`);
     }
 }
 
