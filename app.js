@@ -335,8 +335,8 @@ async function signInWithGoogle() {
     try {
         const provider = new window.GoogleAuthProvider();
         
-        // Sign in with popup
-        const result = await firebaseAuthInstance.signInWithPopup(provider);
+        // Sign in with popup - use imported function
+        const result = await window.signInWithPopup(firebaseAuthInstance, provider);
         const user = result.user;
         
         // Handle successful sign-in
@@ -467,7 +467,17 @@ async function handleFirebaseSignIn(firebaseUser) {
             .eq('id', userId)
             .single();
 
-        // Store in localStorage
+        // Store Firebase token and user data
+        let firebaseToken = null;
+        try {
+            firebaseToken = await firebaseUser.getIdToken();
+            if (firebaseToken) {
+                localStorage.setItem('firebase_token', firebaseToken);
+            }
+        } catch (tokenError) {
+            console.warn('Could not get Firebase token:', tokenError);
+        }
+
         localStorage.setItem('auth_token', sessionToken);
         localStorage.setItem('user_id', userId);
         localStorage.setItem('user_data', JSON.stringify({
