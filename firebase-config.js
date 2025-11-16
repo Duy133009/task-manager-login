@@ -1,15 +1,11 @@
 // Firebase Configuration
-// Thay thế các giá trị này bằng Firebase config của bạn sau khi setup
-
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBr72g7adQ8_LrGKlV16cOejDTeP7aK6SQ",
+  authDomain: "plasma-myth-452407-f7.firebaseapp.com",
+  projectId: "plasma-myth-452407-f7",
+  storageBucket: "plasma-myth-452407-f7.firebasestorage.app",
+  messagingSenderId: "951761465410",
+  appId: "1:951761465410:web:eb44c2c129cbc4b07f3ddb",
+  measurementId: "G-ZE79RH2X2Q"
 };
-
-// Initialize Firebase (sẽ được init trong app.js)
-// firebase.initializeApp(firebaseConfig);
 
