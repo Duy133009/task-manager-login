@@ -58,6 +58,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Setup event listeners
     setupEventListeners();
 
+    // Load dark mode preference
+    loadDarkModePreference();
+
     // Load tasks
     await loadTasks();
     updateNavCounts();
@@ -1103,6 +1106,7 @@ function escapeHtml(text) {
 function openSettings() {
     document.getElementById('settingsModal').style.display = 'block';
     loadNotificationSettings();
+    loadDarkModePreference();
 }
 
 function closeSettingsModal() {
