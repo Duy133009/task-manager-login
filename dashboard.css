@@ -115,6 +115,23 @@ body {
     border-color: #ccc;
 }
 
+.btn-logout {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    margin-right: 8px;
+}
+
+.btn-logout:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
 .window-controls {
     display: flex;
     gap: 4px;
