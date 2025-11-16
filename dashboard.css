@@ -329,7 +329,7 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     font-size: 14px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .nav-item:hover {
@@ -337,9 +337,14 @@ body {
 }
 
 .nav-item.active {
-    background: #e3f2fd;
-    color: #1976d2;
+    background: var(--primary-light);
+    color: var(--primary);
     font-weight: 500;
+}
+
+body.dark-mode .nav-item.active {
+    background: rgba(66, 133, 244, 0.2);
+    color: var(--primary);
 }
 
 .nav-count {
@@ -394,7 +399,7 @@ body {
 .content-title {
     font-size: 24px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -834,7 +839,7 @@ body {
 }
 
 .task-expand-icon {
-    color: #999;
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: 12px;
 }
@@ -844,12 +849,12 @@ body {
     gap: 4px;
     margin-left: 8px;
     font-size: 12px;
-    color: #999;
+    color: var(--text-secondary);
     font-weight: 400;
 }
 
 .start-time, .due-date {
-    color: #666;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -886,7 +891,7 @@ body {
 }
 
 .creator-name {
-    color: #333;
+    color: var(--text-primary);
     font-size: 13px;
 }
 
