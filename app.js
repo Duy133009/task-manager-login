@@ -433,16 +433,25 @@ async function handleGoogleSignIn(response) {
             .eq('id', userId)
             .single();
 
+        // Get updated user data
+        const { data: updatedUser } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
         // Store in localStorage
         localStorage.setItem('auth_token', sessionToken);
         localStorage.setItem('user_id', userId);
         localStorage.setItem('user_data', JSON.stringify({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            full_name: user.full_name,
-            avatar_url: user.avatar_url,
-            auth_provider: 'google'
+            id: updatedUser.id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            full_name: updatedUser.full_name,
+            avatar_url: updatedUser.avatar_url,
+            auth_provider: updatedUser.auth_provider || 'google',
+            google_id: updatedUser.google_id,
+            email_verified: updatedUser.email_verified
         }));
 
         // Redirect to dashboard

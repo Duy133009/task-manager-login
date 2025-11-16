@@ -25,6 +25,7 @@
                 </div>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button class="btn-modules" onclick="openModulesModal()" title="Chọn modules">🧩</button>
                 <button class="btn-settings" onclick="openSettings()" title="Cài đặt">⚙️</button>
                 <button class="logout-btn" onclick="logout()">Đăng Xuất</button>
             </div>
@@ -145,6 +146,22 @@
                     <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Hủy</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modules Modal -->
+    <div id="modulesModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close" onclick="closeModulesModal()">&times;</span>
+            <h2>🧩 Chọn Modules</h2>
+            <p style="color: #666; margin-bottom: 20px;">Chọn các modules bạn muốn sử dụng trong website</p>
+            <div id="modulesList" class="modules-list">
+                <div class="loading">Đang tải modules...</div>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button type="button" class="btn btn-primary" onclick="saveModules()">Lưu Modules</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModulesModal()">Hủy</button>
+            </div>
         </div>
     </div>
 

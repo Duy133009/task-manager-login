@@ -91,6 +91,7 @@ function setupEventListeners() {
             closeModal();
             closeSettingsModal();
             closeProfileModal();
+            closeModulesModal();
         }
     });
 
@@ -99,6 +100,152 @@ function setupEventListeners() {
     
     // Profile form
     document.getElementById('profileForm').addEventListener('submit', handleSaveProfile);
+}
+
+// Modules Modal
+function openModulesModal() {
+    document.getElementById('modulesModal').style.display = 'block';
+    loadAvailableModules();
+}
+
+function closeModulesModal() {
+    document.getElementById('modulesModal').style.display = 'none';
+}
+
+// Load available modules from backend
+async function loadAvailableModules() {
+    const modulesList = document.getElementById('modulesList');
+    modulesList.innerHTML = '<div class="loading">Đang tải modules...</div>';
+
+    try {
+        // Get available modules from database
+        const { data: availableModules, error: modulesError } = await supabaseClient
+            .from('available_modules')
+            .select('*')
+            .eq('is_active', true)
+            .order('category', { ascending: true })
+            .order('module_name', { ascending: true });
+
+        if (modulesError) throw modulesError;
+
+        // Get user's selected modules
+        const { data: userModules, error: userModulesError } = await supabaseClient
+            .from('user_modules')
+            .select('module_key, is_enabled')
+            .eq('user_id', currentUserId);
+
+        if (userModulesError && userModulesError.code !== 'PGRST116') throw userModulesError;
+
+        const selectedModules = new Set();
+        if (userModules) {
+            userModules.forEach(um => {
+                if (um.is_enabled) {
+                    selectedModules.add(um.module_key);
+                }
+            });
+        }
+
+        if (!availableModules || availableModules.length === 0) {
+            modulesList.innerHTML = '<div class="empty-state">Chưa có modules nào</div>';
+            return;
+        }
+
+        // Render modules
+        modulesList.innerHTML = availableModules.map(module => {
+            const isSelected = selectedModules.has(module.module_key);
+            return `
+                <div class="module-card ${isSelected ? 'selected' : ''}" onclick="toggleModule('${module.module_key}')">
+                    <div class="module-icon">${module.icon || '📦'}</div>
+                    <div class="module-name">${escapeHtml(module.module_name)}</div>
+                    <div class="module-description">${escapeHtml(module.description || '')}</div>
+                    <input type="checkbox" class="module-checkbox" ${isSelected ? 'checked' : ''} 
+                           onchange="toggleModule('${module.module_key}')" 
+                           onclick="event.stopPropagation()">
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Error loading modules:', error);
+        modulesList.innerHTML = '<div class="error">Có lỗi xảy ra khi tải modules</div>';
+    }
+}
+
+// Toggle module selection
+function toggleModule(moduleKey) {
+    const moduleCard = document.querySelector(`[onclick="toggleModule('${moduleKey}')"]`);
+    const checkbox = moduleCard.querySelector('.module-checkbox');
+    const isSelected = checkbox.checked;
+
+    if (isSelected) {
+        moduleCard.classList.add('selected');
+    } else {
+        moduleCard.classList.remove('selected');
+    }
+}
+
+// Save selected modules
+async function saveModules() {
+    try {
+        const checkboxes = document.querySelectorAll('.module-checkbox:checked');
+        const selectedModules = Array.from(checkboxes).map(cb => {
+            const moduleCard = cb.closest('.module-card');
+            const moduleKey = moduleCard.getAttribute('onclick').match(/'([^']+)'/)[1];
+            return moduleKey;
+        });
+
+        // Get available modules to get module info
+        const { data: availableModules } = await supabaseClient
+            .from('available_modules')
+            .select('*')
+            .in('module_key', selectedModules);
+
+        // Delete all user modules first
+        await supabaseClient
+            .from('user_modules')
+            .delete()
+            .eq('user_id', currentUserId);
+
+        // Insert selected modules
+        if (selectedModules.length > 0 && availableModules) {
+            const modulesToInsert = availableModules.map(module => ({
+                user_id: currentUserId,
+                module_key: module.module_key,
+                module_name: module.module_name,
+                is_enabled: true,
+                module_config: {}
+            }));
+
+            const { error: insertError } = await supabaseClient
+                .from('user_modules')
+                .insert(modulesToInsert);
+
+            if (insertError) throw insertError;
+        }
+
+        alert('Đã lưu modules thành công!');
+        closeModulesModal();
+    } catch (error) {
+        console.error('Error saving modules:', error);
+        alert('Có lỗi xảy ra khi lưu modules');
+    }
+}
+
+// Get user's enabled modules (for use in other parts of the app)
+async function getUserModules() {
+    try {
+        const { data: userModules, error } = await supabaseClient
+            .from('user_modules')
+            .select('module_key, module_name, module_config')
+            .eq('user_id', currentUserId)
+            .eq('is_enabled', true);
+
+        if (error) throw error;
+        return userModules || [];
+    } catch (error) {
+        console.error('Error getting user modules:', error);
+        return [];
+    }
 }
 
 // Display user info
