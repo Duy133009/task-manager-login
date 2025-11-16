@@ -462,6 +462,13 @@ async function loadTasks() {
     container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: var(--text-secondary);">Đang tải tasks...</div>';
 
     try {
+        // Check if currentUserId is available
+        if (!currentUserId) {
+            console.error('currentUserId is not set');
+            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.</div>';
+            return;
+        }
+
         let query = supabaseClient
             .from('tasks')
             .select('*');
