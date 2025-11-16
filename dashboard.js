@@ -366,6 +366,12 @@ async function loadProfileData() {
 async function handleSaveProfile(e) {
     e.preventDefault();
 
+    if (!currentUserId) {
+        alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+        window.location.href = 'index.html';
+        return;
+    }
+
     const fullName = document.getElementById('profileFullName').value.trim();
 
     if (!fullName) {
@@ -385,9 +391,16 @@ async function handleSaveProfile(e) {
         if (error) throw error;
 
         // Update localStorage
-        const userData = JSON.parse(localStorage.getItem('user_data'));
-        userData.full_name = fullName;
-        localStorage.setItem('user_data', JSON.stringify(userData));
+        const userDataStr = localStorage.getItem('user_data');
+        if (userDataStr) {
+            try {
+                const userData = JSON.parse(userDataStr);
+                userData.full_name = fullName;
+                localStorage.setItem('user_data', JSON.stringify(userData));
+            } catch (parseError) {
+                console.error('Error parsing user_data:', parseError);
+            }
+        }
 
         // Reload user info
         const { data: updatedUser } = await supabaseClient
@@ -439,10 +452,14 @@ function switchView(view) {
 
 // Load tasks
 async function loadTasks() {
-    const tbody = document.getElementById('tasksTableBody');
-    if (!tbody) return;
+    const container = document.getElementById('tasksTableBody');
+    if (!container) {
+        console.error('Tasks container not found');
+        return;
+    }
     
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Đang tải tasks...</td></tr>';
+    // Show loading state for card layout
+    container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: var(--text-secondary);">Đang tải tasks...</div>';
 
     try {
         let query = supabaseClient
@@ -529,7 +546,10 @@ async function loadTasks() {
         updateFilterDisplay();
     } catch (error) {
         console.error('Error loading tasks:', error);
-        tbody.innerHTML = '<tr><td colspan="5" class="loading-cell" style="color: #dc3545;">Có lỗi xảy ra khi tải tasks</td></tr>';
+        const container = document.getElementById('tasksTableBody');
+        if (container) {
+            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Có lỗi xảy ra khi tải tasks</div>';
+        }
     }
 }
 
