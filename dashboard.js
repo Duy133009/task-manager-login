@@ -714,15 +714,22 @@ async function handleNewTask(e) {
             description: description || null,
             priority: priority,
             status: status,
-            start_date: startDate || null,
             due_date: dueDate || null
         };
 
-        const { error } = await supabaseClient
-            .from('tasks')
-            .insert([taskData]);
+        console.log('Creating task with data:', taskData);
 
-        if (error) throw error;
+        const { data, error } = await supabaseClient
+            .from('tasks')
+            .insert([taskData])
+            .select();
+
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
+
+        console.log('Task created successfully:', data);
 
         closeNewTaskModal();
         await loadTasks();
