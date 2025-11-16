@@ -115,23 +115,23 @@
             <!-- Action Bar -->
             <div class="action-bar">
                 <button class="btn-new-task-small" onclick="openNewTaskModal()">+ New Task</button>
-                <button class="status-btn">
+                <button class="status-btn" id="statusFilterBtn" onclick="toggleStatusFilter()">
                     <span class="status-icon">🔄</span>
-                    <span>Ongoing</span>
+                    <span id="statusFilterText">All</span>
                 </button>
-                <button class="filter-btn">
+                <button class="filter-btn" onclick="openFilterModal()">
                     <span class="filter-icon">🔍</span>
-                    <span>Filter 1</span>
+                    <span id="filterText">Filter</span>
                 </button>
-                <div class="sort-group">
+                <div class="sort-group" onclick="openSortMenu()" style="cursor: pointer;">
                     <span class="sort-icon">⇅</span>
-                    <span>Sort by: Due Date</span>
+                    <span id="sortText">Sort by: Due Date</span>
                 </div>
-                <div class="group-by">
+                <div class="group-by" onclick="toggleGroupBy()" style="cursor: pointer;">
                     <span class="group-icon">📊</span>
-                    <span>Group by: Creator</span>
+                    <span id="groupByText">Group by: Creator</span>
                 </div>
-                <button class="customize-btn">Customize</button>
+                <button class="customize-btn" onclick="openCustomizeModal()">Customize</button>
             </div>
 
             <!-- Task Table -->

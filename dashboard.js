@@ -8,6 +8,8 @@ const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 let currentUserId = null;
 let currentView = 'owned';
 let currentSort = 'due_date';
+let currentSortAsc = true;
+let currentStatusFilter = null; // null = all, 'ongoing' = in_progress, 'completed' = completed
 let groupByCreator = true;
 let allTasks = [];
 let allUsers = {};
@@ -105,6 +107,13 @@ function setupEventListeners() {
             closeNewTaskModal();
             closeProfileModal();
             closeSettingsModal();
+            closeFilterModal();
+        }
+        
+        // Close sort menu when clicking outside
+        const sortMenu = document.getElementById('sortMenu');
+        if (sortMenu && !e.target.closest('.sort-group') && !e.target.closest('#sortMenu')) {
+            sortMenu.style.display = 'none';
         }
     });
 }
@@ -438,9 +447,44 @@ async function loadTasks() {
                 break;
         }
 
+        // Filter by status
+        if (currentStatusFilter === 'ongoing') {
+            query = query.eq('status', 'in_progress');
+        } else if (currentStatusFilter === 'completed') {
+            query = query.eq('status', 'completed');
+        } else if (currentStatusFilter === 'pending') {
+            query = query.eq('status', 'pending');
+        }
+
+        // Apply custom filters from localStorage
+        const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
+        
+        if (savedFilters.priorities && savedFilters.priorities.length > 0) {
+            query = query.in('priority', savedFilters.priorities);
+        }
+        
+        if (savedFilters.dueDateFrom) {
+            query = query.gte('due_date', savedFilters.dueDateFrom);
+        }
+        
+        if (savedFilters.dueDateTo) {
+            query = query.lte('due_date', savedFilters.dueDateTo);
+        }
+        
+        if (savedFilters.overdue) {
+            query = query.lt('due_date', new Date().toISOString()).neq('status', 'completed');
+        }
+
         // Sort
         if (currentSort === 'due_date') {
-            query = query.order('due_date', { ascending: true, nullsFirst: false });
+            query = query.order('due_date', { ascending: currentSortAsc, nullsFirst: false });
+        } else if (currentSort === 'created_at') {
+            query = query.order('created_at', { ascending: currentSortAsc });
+        } else if (currentSort === 'title') {
+            query = query.order('title', { ascending: currentSortAsc });
+        } else if (currentSort === 'priority') {
+            // Priority sorting: high > medium > low
+            query = query.order('priority', { ascending: currentSortAsc });
         } else {
             query = query.order('created_at', { ascending: false });
         }
@@ -457,6 +501,7 @@ async function loadTasks() {
         // Render tasks
         renderTasks(tasks || []);
         updateNavCounts();
+        updateFilterDisplay();
     } catch (error) {
         console.error('Error loading tasks:', error);
         tbody.innerHTML = '<tr><td colspan="5" class="loading-cell" style="color: #dc3545;">Có lỗi xảy ra khi tải tasks</td></tr>';
@@ -688,6 +733,171 @@ function createNewGroup() {
         console.log('Create group:', groupName);
         // Implement group creation logic
     }
+}
+
+// Status Filter
+function toggleStatusFilter() {
+    const statusOptions = [null, 'ongoing', 'pending', 'completed'];
+    const statusLabels = ['All', 'Ongoing', 'Pending', 'Completed'];
+    const currentIndex = statusOptions.indexOf(currentStatusFilter);
+    const nextIndex = (currentIndex + 1) % statusOptions.length;
+    
+    currentStatusFilter = statusOptions[nextIndex];
+    const statusText = document.getElementById('statusFilterText');
+    if (statusText) {
+        statusText.textContent = statusLabels[nextIndex];
+    }
+    
+    loadTasks();
+}
+
+// Filter Modal
+function openFilterModal() {
+    const modal = document.getElementById('filterModal');
+    if (modal) {
+        modal.style.display = 'block';
+        loadSavedFilters();
+    }
+}
+
+function closeFilterModal() {
+    const modal = document.getElementById('filterModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function loadSavedFilters() {
+    const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
+    
+    if (savedFilters.priorities) {
+        const select = document.getElementById('filterPriority');
+        if (select) {
+            Array.from(select.options).forEach(option => {
+                option.selected = savedFilters.priorities.includes(option.value);
+            });
+        }
+    }
+    
+    if (savedFilters.dueDateFrom) {
+        document.getElementById('filterDueDateFrom').value = savedFilters.dueDateFrom;
+    }
+    
+    if (savedFilters.dueDateTo) {
+        document.getElementById('filterDueDateTo').value = savedFilters.dueDateTo;
+    }
+    
+    if (savedFilters.overdue) {
+        document.getElementById('filterOverdue').checked = savedFilters.overdue;
+    }
+}
+
+function applyFilters() {
+    const priorities = Array.from(document.getElementById('filterPriority').selectedOptions)
+        .map(option => option.value);
+    const dueDateFrom = document.getElementById('filterDueDateFrom').value;
+    const dueDateTo = document.getElementById('filterDueDateTo').value;
+    const overdue = document.getElementById('filterOverdue').checked;
+    
+    const filters = {
+        priorities: priorities.length > 0 ? priorities : null,
+        dueDateFrom: dueDateFrom || null,
+        dueDateTo: dueDateTo || null,
+        overdue: overdue || false
+    };
+    
+    localStorage.setItem('taskFilters', JSON.stringify(filters));
+    
+    // Update filter text
+    const filterText = document.getElementById('filterText');
+    const activeFilters = [];
+    if (priorities.length > 0) activeFilters.push(`${priorities.length} priority`);
+    if (dueDateFrom || dueDateTo) activeFilters.push('date');
+    if (overdue) activeFilters.push('overdue');
+    
+    if (filterText) {
+        filterText.textContent = activeFilters.length > 0 ? `Filter (${activeFilters.length})` : 'Filter';
+    }
+    
+    closeFilterModal();
+    loadTasks();
+}
+
+function clearFilters() {
+    localStorage.removeItem('taskFilters');
+    document.getElementById('filterForm').reset();
+    const filterText = document.getElementById('filterText');
+    if (filterText) {
+        filterText.textContent = 'Filter';
+    }
+    loadTasks();
+}
+
+function updateFilterDisplay() {
+    const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
+    const activeFilters = [];
+    if (savedFilters.priorities && savedFilters.priorities.length > 0) {
+        activeFilters.push(`${savedFilters.priorities.length} priority`);
+    }
+    if (savedFilters.dueDateFrom || savedFilters.dueDateTo) {
+        activeFilters.push('date');
+    }
+    if (savedFilters.overdue) {
+        activeFilters.push('overdue');
+    }
+    
+    const filterText = document.getElementById('filterText');
+    if (filterText) {
+        filterText.textContent = activeFilters.length > 0 ? `Filter (${activeFilters.length})` : 'Filter';
+    }
+}
+
+// Sort Menu
+function openSortMenu() {
+    const menu = document.getElementById('sortMenu');
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function setSort(sortBy, ascending) {
+    currentSort = sortBy;
+    currentSortAsc = ascending;
+    
+    const sortText = document.getElementById('sortText');
+    if (sortText) {
+        const sortLabels = {
+            'due_date': 'Due Date',
+            'created_at': 'Created Date',
+            'title': 'Title',
+            'priority': 'Priority'
+        };
+        const arrow = ascending ? '↑' : '↓';
+        sortText.textContent = `Sort by: ${sortLabels[sortBy]} ${arrow}`;
+    }
+    
+    // Close menu
+    const menu = document.getElementById('sortMenu');
+    if (menu) {
+        menu.style.display = 'none';
+    }
+    
+    loadTasks();
+}
+
+// Group By Toggle
+function toggleGroupBy() {
+    groupByCreator = !groupByCreator;
+    const groupByText = document.getElementById('groupByText');
+    if (groupByText) {
+        groupByText.textContent = groupByCreator ? 'Group by: Creator' : 'No Grouping';
+    }
+    loadTasks();
+}
+
+// Customize Modal
+function openCustomizeModal() {
+    alert('Customize feature coming soon!');
 }
 
 // Complete task
