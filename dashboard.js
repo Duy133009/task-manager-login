@@ -494,11 +494,52 @@ function renderTasks(tasks) {
         return;
     }
 
-    // Render tasks (creator info is shown in each row, no separate group header)
-    tbody.innerHTML = tasks.map(task => {
-        const creator = allUsers[task.user_id];
-        return createTaskRow(task, creator);
-    }).join('');
+    if (groupByCreator) {
+        // Group by creator
+        const grouped = {};
+        tasks.forEach(task => {
+            const creatorId = task.user_id;
+            if (!grouped[creatorId]) {
+                grouped[creatorId] = [];
+            }
+            grouped[creatorId].push(task);
+        });
+
+        let html = '';
+        Object.keys(grouped).forEach(creatorId => {
+            const creatorTasks = grouped[creatorId];
+            const creator = allUsers[creatorId];
+            const creatorName = creator ? (creator.full_name || creator.username || creator.email) : 'Unknown';
+            const creatorInitial = creatorName.charAt(0).toUpperCase();
+            const avatarUrl = creator?.avatar_url;
+
+            // Group header
+            html += `
+                <tr class="group-header-row">
+                    <td colspan="5" class="group-header">
+                        <div class="group-creator-avatar" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 600;"'}>
+                            ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
+                        </div>
+                        <span>${escapeHtml(creatorName)}</span>
+                        <span class="group-count">${creatorTasks.length}</span>
+                    </td>
+                </tr>
+            `;
+
+            // Tasks in group
+            creatorTasks.forEach(task => {
+                html += createTaskRow(task, creator);
+            });
+        });
+
+        tbody.innerHTML = html;
+    } else {
+        // No grouping
+        tbody.innerHTML = tasks.map(task => {
+            const creator = allUsers[task.user_id];
+            return createTaskRow(task, creator);
+        }).join('');
+    }
 }
 
 // Create task row HTML
@@ -517,19 +558,10 @@ function createTaskRow(task, creator) {
                 <input type="checkbox" class="task-checkbox" onchange="toggleTaskSelection(${task.id})">
             </td>
             <td>
-                <div class="task-title-with-creator">
-                    <div class="task-creator-avatar-small">
-                        <div class="creator-avatar-small" ${avatarUrl ? '' : 'style="display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: 600;"'}>
-                            ${avatarUrl ? `<img src="${avatarUrl}" alt="${creatorName}">` : creatorInitial}
-                        </div>
-                        <span class="task-creator-name-small">${escapeHtml(creatorDisplayName)}</span>
-                        <span class="task-count-badge">1</span>
-                    </div>
-                    <div class="task-title-content">
-                        <span class="task-expand-icon">→</span>
-                        <span class="task-title-text">${escapeHtml(task.title)}</span>
-                        <span class="task-indicators">0/1 2</span>
-                    </div>
+                <div class="task-title">
+                    <span class="task-expand-icon">→</span>
+                    <span class="task-title-text">${escapeHtml(task.title)}</span>
+                    <span class="task-indicators">0/1 2</span>
                 </div>
             </td>
             <td>
