@@ -980,6 +980,32 @@ function openCustomizeModal() {
     alert('Customize feature coming soon!');
 }
 
+// Dark Mode Functions
+function loadDarkModePreference() {
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    const toggle = document.getElementById('darkModeToggle');
+    if (toggle) {
+        toggle.checked = darkMode;
+    }
+    applyDarkMode(darkMode);
+}
+
+function toggleDarkMode() {
+    const toggle = document.getElementById('darkModeToggle');
+    const isDark = toggle ? toggle.checked : false;
+    localStorage.setItem('darkMode', isDark.toString());
+    applyDarkMode(isDark);
+}
+
+function applyDarkMode(isDark) {
+    const body = document.body;
+    if (isDark) {
+        body.classList.add('dark-mode');
+    } else {
+        body.classList.remove('dark-mode');
+    }
+}
+
 // Complete task
 async function completeTask(taskId) {
     try {
