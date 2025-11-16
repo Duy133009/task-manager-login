@@ -3,6 +3,10 @@
 .env.local
 .env.production
 
+# Credentials (KHÔNG commit lên GitHub!)
+google-credentials.txt
+*.credentials
+
 # Logs
 *.log
 npm-debug.log*
