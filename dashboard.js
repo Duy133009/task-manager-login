@@ -602,6 +602,10 @@ function createTaskRow(task, creator) {
     const startDate = task.start_date ? new Date(task.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     const dueDate = task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
     
+    // Format dates for display
+    const startDateFormatted = task.start_date ? new Date(task.start_date + 'T00:00:00').toISOString().split('T')[0] : '';
+    const dueDateFormatted = task.due_date ? new Date(task.due_date + 'T00:00:00').toISOString().split('T')[0] : '';
+    
     const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed';
     const priorityClass = task.priority || 'medium';
     const statusClass = task.status || 'pending';
@@ -714,6 +718,7 @@ async function handleNewTask(e) {
             description: description || null,
             priority: priority,
             status: status,
+            start_date: startDate || null,
             due_date: dueDate || null
         };
 
