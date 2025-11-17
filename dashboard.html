@@ -299,39 +299,76 @@
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeSettingsModal()">&times;</span>
-            <h2>⚙️ Settings</h2>
+        <div class="modal-content settings-modal">
+            <div class="settings-header">
+                <div class="settings-title">
+                    <i class='bx bx-cog'></i>
+                    <h2>Settings</h2>
+                </div>
+                <button class="settings-close" onclick="closeSettingsModal()">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+            
             <form id="settingsForm">
-                <div class="form-group">
-                    <label style="font-weight: 600; font-size: 16px; margin-bottom: 16px; display: block; color: var(--gray-900);">Giao Diện</label>
-                    <label class="checkbox-label" style="padding: 12px; border: 1px solid var(--gray-300); border-radius: var(--radius-md); cursor: pointer; transition: all var(--transition-base);">
-                        <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
-                        <span style="font-weight: 500;">Chế độ tối (Dark Mode)</span>
-                    </label>
-                    <small style="display: block; margin-top: 8px; color: var(--gray-600); font-size: 13px;">Bật/tắt giao diện tối để bảo vệ mắt khi làm việc vào ban đêm</small>
+                <!-- Appearance Section -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Giao Diện</h3>
+                    
+                    <div class="settings-item">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                            <div class="toggle-label">
+                                <div class="toggle-info">
+                                    <span class="toggle-title">Chế độ tối (Dark Mode)</span>
+                                    <span class="toggle-description">Bật/tắt giao diện tối để bảo vệ mắt khi làm việc vào ban đêm</span>
+                                </div>
+                                <div class="toggle-switch">
+                                    <div class="toggle-slider"></div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
                 </div>
                 
-                <div style="height: 1px; background: var(--gray-200); margin: 24px 0;"></div>
+                <!-- Email Notifications Section -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Thông Báo Email</h3>
+                    
+                    <div class="settings-item">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="emailNotifications">
+                            <div class="toggle-label">
+                                <div class="toggle-info">
+                                    <span class="toggle-title">Enable email reminders</span>
+                                    <span class="toggle-description">Nhận thông báo nhắc nhở qua email</span>
+                                </div>
+                                <div class="toggle-switch">
+                                    <div class="toggle-slider"></div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <label class="settings-input-label">
+                            <span class="input-title">Remind before (days)</span>
+                            <input type="number" id="reminderBeforeDays" class="settings-input" min="0" max="30" value="1">
+                        </label>
+                    </div>
+                    
+                    <div class="settings-item">
+                        <label class="settings-input-label">
+                            <span class="input-title">Remind before (hours)</span>
+                            <input type="number" id="reminderBeforeHours" class="settings-input" min="0" max="23" value="24">
+                        </label>
+                    </div>
+                </div>
                 
-                <div class="form-group">
-                    <label style="font-weight: 600; font-size: 16px; margin-bottom: 16px; display: block; color: var(--gray-900);">Thông Báo Email</label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="emailNotifications">
-                        <span>Enable email reminders</span>
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label for="reminderBeforeDays">Remind before (days)</label>
-                    <input type="number" id="reminderBeforeDays" min="0" max="30" value="1">
-                </div>
-                <div class="form-group">
-                    <label for="reminderBeforeHours">Remind before (hours)</label>
-                    <input type="number" id="reminderBeforeHours" min="0" max="23" value="24">
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn btn-primary">Save</button>
+                <!-- Modal Actions -->
+                <div class="settings-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>
