@@ -410,6 +410,15 @@ function setupRegisterForm() {
             }
             
             console.log('Auth signup successful, user ID:', authData.user?.id);
+            
+            // Check if user needs email confirmation
+            if (authData.user && !authData.session) {
+                console.warn('User created but no session - email confirmation may be required');
+                // User needs to confirm email before login
+                showSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+                form.reset();
+                return;
+            }
         
             // Create user profile in users table
             // Note: This should ideally be done via database trigger or Edge Function
@@ -422,7 +431,7 @@ function setupRegisterForm() {
                 username: username,
                 email: email,
                         full_name: fullName,
-                        email_verified: false
+                        email_verified: authData.user.email_confirmed_at !== null
                     });
         
                 if (profileError) {
@@ -433,11 +442,26 @@ function setupRegisterForm() {
                 }
             }
         
-        // Show success
+            // If we have a session, user is logged in - redirect to dashboard immediately
+            if (authData.session) {
+                console.log('User has active session, redirecting to dashboard...');
+                showSuccess('Đăng ký thành công! Đang chuyển đến dashboard...');
+                
+                // Clear form
+                form.reset();
+                
+                // Redirect to dashboard after 1 second
+                setTimeout(() => {
+                    window.location.replace('dashboard.html');
+                }, 1000);
+                return;
+            }
+        
+            // Otherwise, show success and switch to login form
             showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
         
             // Clear form first
-        form.reset();
+            form.reset();
         
             // Switch to login form after 1.5 seconds
             setTimeout(() => {
@@ -449,7 +473,7 @@ function setupRegisterForm() {
                 } else {
                     console.error('Container not found for switching');
                 }
-                
+            
                 // Pre-fill email in login form
                 const loginEmailInput = document.getElementById('loginUsername');
                 if (loginEmailInput) {
@@ -458,7 +482,7 @@ function setupRegisterForm() {
                 } else {
                     console.error('Login email input not found');
                 }
-                
+            
                 // Clear any errors
                 document.querySelectorAll('.error-message').forEach(e => {
                     e.style.display = 'none';
