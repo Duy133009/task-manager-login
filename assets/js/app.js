@@ -70,7 +70,7 @@ function setupToggleButtons() {
 function setupPasswordToggles() {
     console.log('Setting up password toggles...');
     
-    document.querySelectorAll('.toggle-password-icon').forEach(btn => {
+document.querySelectorAll('.toggle-password-icon').forEach(btn => {
         // Remove old listeners by cloning
         const newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
@@ -80,7 +80,7 @@ function setupPasswordToggles() {
             e.stopPropagation();
             
             const targetId = newBtn.dataset.target;
-            const input = document.getElementById(targetId);
+        const input = document.getElementById(targetId);
             const icon = newBtn.querySelector('i');
             
             console.log('Toggle password clicked for:', targetId);
@@ -89,25 +89,25 @@ function setupPasswordToggles() {
                 console.error('Input not found:', targetId);
                 return;
             }
-            
-            if (input.type === 'password') {
-                input.type = 'text';
+        
+        if (input.type === 'password') {
+            input.type = 'text';
                 if (icon) {
-                    icon.classList.remove('bx-hide');
-                    icon.classList.add('bx-show');
+            icon.classList.remove('bx-hide');
+            icon.classList.add('bx-show');
                 }
                 console.log('Password shown');
-            } else {
-                input.type = 'password';
+        } else {
+            input.type = 'password';
                 if (icon) {
-                    icon.classList.remove('bx-show');
-                    icon.classList.add('bx-hide');
+            icon.classList.remove('bx-show');
+            icon.classList.add('bx-hide');
                 }
                 console.log('Password hidden');
-            }
-        });
+        }
     });
-    
+});
+
     console.log('Password toggles set up, found buttons:', document.querySelectorAll('.toggle-password-icon').length);
 }
 
@@ -445,7 +445,7 @@ function setupRegisterForm() {
             }
             
             console.log('Auth signup successful, user ID:', authData.user?.id);
-            
+        
             // Check if user needs email confirmation
             if (authData.user && !authData.session) {
                 console.warn('User created but no session - email confirmation may be required');
@@ -463,9 +463,9 @@ function setupRegisterForm() {
             if (authData.session) {
                 console.log('User has active session, redirecting to dashboard...');
                 showSuccess('Đăng ký thành công! Đang chuyển đến dashboard...');
-                
-                // Clear form
-                form.reset();
+        
+        // Clear form
+        form.reset();
                 
                 // Redirect to dashboard after 1 second
                 setTimeout(() => {
@@ -506,7 +506,7 @@ function setupRegisterForm() {
                     e.textContent = '';
                 });
             }, 1500);
-            
+        
     } catch (error) {
             console.error('Register error:', error);
             let errorMessage = 'Đã xảy ra lỗi khi đăng ký';
@@ -802,9 +802,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         if (session && !error && !isReset && !type) {
             console.log('User already logged in, redirecting to dashboard...');
-            // User is logged in, redirect to dashboard
-            window.location.href = 'dashboard.html';
-        } else {
+                    // User is logged in, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
             console.log('No active session, showing login form');
             // Clear any old localStorage data
             localStorage.removeItem('user_id');
@@ -814,9 +814,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.error('Error checking session:', sessionError);
         // If session check fails, just show login form
         console.log('Session check failed, showing login form');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_data');
-    }
+                    localStorage.removeItem('user_id');
+                    localStorage.removeItem('user_data');
+                }
     
     // Close modal when clicking outside
     window.addEventListener('click', (e) => {

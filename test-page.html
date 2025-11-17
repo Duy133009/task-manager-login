@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Loading Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/config.js"></script>
+</head>
+<body>
+    <h1>Loading Test Page</h1>
+    <div id="status">Checking...</div>
+    <pre id="logs"></pre>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const logsDiv = document.getElementById('logs');
+        let logs = [];
+        
+        function log(message) {
+            console.log(message);
+            logs.push(message);
+            logsDiv.textContent = logs.join('\n');
+        }
+        
+        async function test() {
+            try {
+                log('1. Page loaded');
+                
+                // Check if SUPABASE_CONFIG is loaded
+                if (typeof SUPABASE_CONFIG !== 'undefined') {
+                    log('2. Config loaded: ' + JSON.stringify(SUPABASE_CONFIG));
+                } else {
+                    log('2. ERROR: Config not loaded!');
+                    statusDiv.textContent = 'Error: Config not loaded';
+                    return;
+                }
+                
+                // Check if supabase SDK is loaded
+                if (typeof supabase !== 'undefined') {
+                    log('3. Supabase SDK loaded');
+                } else {
+                    log('3. ERROR: Supabase SDK not loaded!');
+                    statusDiv.textContent = 'Error: Supabase SDK not loaded';
+                    return;
+                }
+                
+                // Try to create client
+                const { createClient } = supabase;
+                const client = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+                log('4. Supabase client created');
+                
+                // Try to get session (with timeout)
+                log('5. Checking session...');
+                const sessionPromise = client.auth.getSession();
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 3000)
+                );
+                
+                const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
+                
+                if (error) {
+                    log('6. Session check error: ' + error.message);
+                } else if (data.session) {
+                    log('6. Session exists: ' + data.session.user.email);
+                } else {
+                    log('6. No session');
+                }
+                
+                statusDiv.textContent = 'Test completed successfully!';
+                statusDiv.style.color = 'green';
+                
+            } catch (error) {
+                log('ERROR: ' + error.message);
+                statusDiv.textContent = 'Error: ' + error.message;
+                statusDiv.style.color = 'red';
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('DOMContentLoaded', test);
+    </script>
+</body>
+</html>
+
