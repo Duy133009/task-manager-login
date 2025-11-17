@@ -291,13 +291,21 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 // Register form handler - Using Supabase Auth
-const registerForm = document.getElementById('registerForm');
-if (!registerForm) {
-    console.error('Register form not found!');
-} else {
+// This will be set up in DOMContentLoaded to ensure DOM is ready
+function setupRegisterForm() {
+    const registerForm = document.getElementById('registerForm');
+    if (!registerForm) {
+        console.error('Register form not found!');
+        return;
+    }
+    
+    console.log('Setting up register form handler');
+    
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         e.stopPropagation();
+        
+        console.log('Register form submitted');
         
         const form = e.target;
         const btn = form.querySelector('.btn-primary');
@@ -306,7 +314,7 @@ if (!registerForm) {
         const errorDiv = document.getElementById('registerError');
         
         if (!btn || !errorDiv) {
-            console.error('Register form elements not found');
+            console.error('Register form elements not found', { btn, errorDiv });
             return;
         }
         
@@ -315,6 +323,8 @@ if (!registerForm) {
         const email = document.getElementById('registerEmail')?.value.trim() || '';
         const password = document.getElementById('registerPassword')?.value || '';
         const confirmPassword = document.getElementById('confirmPassword')?.value || '';
+        
+        console.log('Register form data:', { fullName, username, email, passwordLength: password.length });
         
         // Validation
         if (!fullName) {
@@ -353,120 +363,129 @@ if (!registerForm) {
             return;
         }
     
-    // Show loading
-    btn.disabled = true;
-    btnText.style.display = 'none';
-    btnLoader.style.display = 'inline-block';
-    errorDiv.style.display = 'none';
-    
-    try {
-        // Check if username already exists
-        const { data: existingUsername, error: usernameCheckError } = await supabaseClient
-            .from('users')
-            .select('username')
-            .eq('username', username)
-            .single();
+        // Show loading
+        btn.disabled = true;
+        btnText.style.display = 'none';
+        btnLoader.style.display = 'inline-block';
+        errorDiv.style.display = 'none';
         
-        if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
-            throw usernameCheckError;
-        }
-        
-        if (existingUsername) {
-            throw new Error('Tên đăng nhập đã tồn tại');
-        }
-        
-        // Sign up using Supabase Auth
-        // Disable email confirmation - allow immediate login
-        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-                emailRedirectTo: null, // Disable email confirmation
-                data: {
-                    full_name: fullName,
-                    username: username
+        try {
+            console.log('Starting registration process...');
+            
+            // Check if username already exists
+            const { data: existingUsername, error: usernameCheckError } = await supabaseClient
+                .from('users')
+                .select('username')
+                .eq('username', username)
+                .single();
+            
+            if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+                throw usernameCheckError;
+            }
+            
+            if (existingUsername) {
+                throw new Error('Tên đăng nhập đã tồn tại');
+            }
+            
+            // Sign up using Supabase Auth
+            // Disable email confirmation - allow immediate login
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    emailRedirectTo: null, // Disable email confirmation
+                    data: {
+                        full_name: fullName,
+                        username: username
+                    }
+                }
+            });
+            
+            if (authError) {
+                console.error('Auth error:', authError);
+                if (authError.message.includes('already registered')) {
+                    throw new Error('Email đã được sử dụng');
+                }
+                throw authError;
+            }
+            
+            console.log('Auth signup successful, user ID:', authData.user?.id);
+            
+            // Create user profile in users table
+            // Note: This should ideally be done via database trigger or Edge Function
+            // For now, we'll insert after auth signup
+            if (authData.user) {
+                const { error: profileError } = await supabaseClient
+                    .from('users')
+                    .insert({
+                        id: authData.user.id, // Use auth user ID
+                        username: username,
+                        email: email,
+                        full_name: fullName,
+                        email_verified: false
+                    });
+                
+                if (profileError) {
+                    console.error('Error creating user profile:', profileError);
+                    // Don't throw - auth user is already created
+                } else {
+                    console.log('User profile created successfully');
                 }
             }
-        });
-        
-        if (authError) {
-            if (authError.message.includes('already registered')) {
-                throw new Error('Email đã được sử dụng');
-            }
-            throw authError;
-        }
-        
-        // Create user profile in users table
-        // Note: This should ideally be done via database trigger or Edge Function
-        // For now, we'll insert after auth signup
-        if (authData.user) {
-            const { error: profileError } = await supabaseClient
-                .from('users')
-                .insert({
-                    id: authData.user.id, // Use auth user ID
-                    username: username,
-                    email: email,
-                    full_name: fullName,
-                    email_verified: false
+            
+            // Show success
+            showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
+            
+            // Clear form first
+            form.reset();
+            
+            // Switch to login form after 1.5 seconds
+            setTimeout(() => {
+                // Ensure container is available
+                const containerEl = document.querySelector('.container');
+                if (containerEl) {
+                    containerEl.classList.remove('active');
+                    console.log('Switched to login form');
+                } else {
+                    console.error('Container not found for switching');
+                }
+                
+                // Pre-fill email in login form
+                const loginEmailInput = document.getElementById('loginUsername');
+                if (loginEmailInput) {
+                    loginEmailInput.value = email;
+                    console.log('Pre-filled email:', email);
+                } else {
+                    console.error('Login email input not found');
+                }
+                
+                // Clear any errors
+                document.querySelectorAll('.error-message').forEach(e => {
+                    e.style.display = 'none';
+                    e.textContent = '';
                 });
+            }, 1500);
             
-            if (profileError) {
-                console.error('Error creating user profile:', profileError);
-                // Don't throw - auth user is already created
+        } catch (error) {
+            console.error('Register error:', error);
+            let errorMessage = 'Đã xảy ra lỗi khi đăng ký';
+            
+            if (error.message) {
+                errorMessage = error.message;
+            } else if (error.error_description) {
+                errorMessage = error.error_description;
             }
+            
+            errorDiv.textContent = errorMessage;
+            errorDiv.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btnText.style.display = 'inline-block';
+            btnLoader.style.display = 'none';
         }
-        
-        // Show success
-        showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
-        
-        // Clear form first
-        form.reset();
-        
-        // Switch to login form after 1.5 seconds
-        setTimeout(() => {
-            // Ensure container is available
-            const containerEl = document.querySelector('.container');
-            if (containerEl) {
-                containerEl.classList.remove('active');
-                console.log('Switched to login form');
-            } else {
-                console.error('Container not found for switching');
-            }
-            
-            // Pre-fill email in login form
-            const loginEmailInput = document.getElementById('loginUsername');
-            if (loginEmailInput) {
-                loginEmailInput.value = email;
-                console.log('Pre-filled email:', email);
-            } else {
-                console.error('Login email input not found');
-            }
-            
-            // Clear any errors
-            document.querySelectorAll('.error-message').forEach(e => {
-                e.style.display = 'none';
-                e.textContent = '';
-            });
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Register error:', error);
-        let errorMessage = 'Đã xảy ra lỗi khi đăng ký';
-        
-        if (error.message) {
-            errorMessage = error.message;
-        } else if (error.error_description) {
-            errorMessage = error.error_description;
-        }
-        
-        errorDiv.textContent = errorMessage;
-        errorDiv.style.display = 'block';
-    } finally {
-        btn.disabled = false;
-        btnText.style.display = 'inline-block';
-        btnLoader.style.display = 'none';
-    }
     });
+    
+    console.log('Register form handler set up successfully');
 }
 
 // Helper functions
@@ -761,4 +780,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Setup toggle buttons for login/register switching
     setupToggleButtons();
     setupPasswordToggles();
+    
+    // Setup register form handler
+    setupRegisterForm();
+    
+    console.log('All form handlers initialized');
 });
