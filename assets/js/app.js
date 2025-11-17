@@ -131,22 +131,29 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         }
         
         // Sign in using Supabase Auth
+        console.log('Attempting to sign in with email:', email);
+        
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
         });
         
         if (authError) {
+            console.error('Login error:', authError);
+            
             // Handle different error types
             let errorMessage = 'Đã xảy ra lỗi khi đăng nhập';
             
             if (authError.message.includes('Invalid login credentials') || 
-                authError.message.includes('Invalid credentials')) {
+                authError.message.includes('Invalid credentials') ||
+                authError.message.includes('Email rate limit exceeded')) {
                 errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
             } else if (authError.message.includes('Email not confirmed')) {
                 errorMessage = 'Vui lòng xác thực email trước khi đăng nhập';
             } else if (authError.message.includes('Too many requests')) {
                 errorMessage = 'Quá nhiều lần thử. Vui lòng thử lại sau vài phút';
+            } else if (authError.message.includes('User not found')) {
+                errorMessage = 'Tài khoản không tồn tại';
             } else {
                 errorMessage = authError.message || 'Đã xảy ra lỗi khi đăng nhập';
             }
@@ -155,6 +162,15 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             errorDiv.style.display = 'block';
             return;
         }
+        
+        if (!authData || !authData.user) {
+            console.error('Login failed: No user data returned');
+            errorDiv.textContent = 'Đăng nhập thất bại. Vui lòng thử lại.';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        console.log('Login successful, user ID:', authData.user.id);
         
         // Get user ID from auth data
         const userId = authData.user.id;
