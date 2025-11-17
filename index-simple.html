@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test - Đăng Nhập</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body>
+    <div class="container">
+        <div class="form-box login">
+            <h1>Test - Trang Load Thành Công!</h1>
+            <p>Nếu bạn thấy message này, HTML/CSS đang hoạt động.</p>
+            <p>Giờ test JavaScript...</p>
+            <div id="js-test"></div>
+            <div id="config-test"></div>
+            <div id="supabase-test"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('js-test').innerHTML = '<p style="color: green;">✓ JavaScript hoạt động</p>';
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        if (typeof supabase !== 'undefined') {
+            document.getElementById('supabase-test').innerHTML = '<p style="color: green;">✓ Supabase SDK loaded</p>';
+        } else {
+            document.getElementById('supabase-test').innerHTML = '<p style="color: red;">✗ Supabase SDK failed</p>';
+        }
+    </script>
+    
+    <script src="assets/js/config.js"></script>
+    <script>
+        if (typeof SUPABASE_CONFIG !== 'undefined') {
+            document.getElementById('config-test').innerHTML = '<p style="color: green;">✓ Config loaded: ' + SUPABASE_CONFIG.url + '</p>';
+        } else {
+            document.getElementById('config-test').innerHTML = '<p style="color: red;">✗ Config failed</p>';
+        }
+    </script>
+    
+    <!-- DO NOT load app.js to isolate the issue -->
+</body>
+</html>
+
