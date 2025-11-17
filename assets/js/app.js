@@ -601,12 +601,65 @@ function setupRegisterForm() {
 // Helper functions
 function showSuccess(message) {
     const successDiv = document.getElementById('successMessage');
-    successDiv.textContent = message;
-    successDiv.style.display = 'block';
-    
+    if (successDiv) {
+        successDiv.textContent = message;
+        successDiv.style.display = 'block';
+
+        setTimeout(() => {
+            successDiv.style.display = 'none';
+        }, 5000);
+    } else {
+        // Fallback to beautiful toast if successMessage div not found
+        showSuccessMessage(message);
+    }
+}
+
+// Beautiful success message toast
+function showSuccessMessage(message) {
+    // Create success message element if it doesn't exist
+    let successDiv = document.getElementById('customSuccessMessage');
+    if (!successDiv) {
+        successDiv = document.createElement('div');
+        successDiv.id = 'customSuccessMessage';
+        successDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+            font-size: 16px;
+            font-weight: 500;
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        `;
+        document.body.appendChild(successDiv);
+    }
+
+    // Set message and show
+    successDiv.innerHTML = '<i class="bx bx-check-circle" style="font-size: 24px; color: #fff;"></i>' + message;
+    successDiv.style.opacity = '1';
+    successDiv.style.transform = 'translateX(-50%) translateY(0)';
+
+    // Auto hide after 3 seconds
     setTimeout(() => {
-        successDiv.style.display = 'none';
-    }, 5000);
+        successDiv.style.opacity = '0';
+        successDiv.style.transform = 'translateX(-50%) translateY(-20px)';
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.parentNode.removeChild(successDiv);
+            }
+        }, 300);
+    }, 3000);
 }
 
 // Forgot Password Functions
