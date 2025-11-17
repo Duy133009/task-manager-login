@@ -6,7 +6,8 @@ function showCriticalErrorScreen(message) {
         window.__appFailSafeTimer = null;
     }
     console.error(message);
-    window.addEventListener('DOMContentLoaded', () => {
+
+    const renderError = () => {
         const loadingIndicator = document.getElementById('loading-indicator');
         const authContainer = document.getElementById('authContainer');
 
@@ -24,12 +25,32 @@ function showCriticalErrorScreen(message) {
                 </div>
             `;
         }
-    });
+    };
+
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', renderError, { once: true });
+    } else {
+        renderError();
+    }
 }
 
 (function initAuthApp() {
+    console.log('initAuthApp called');
+    console.log('Supabase available:', !!window.supabase);
+    console.log('createClient function:', typeof window.supabase?.createClient);
+
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        showCriticalErrorScreen('Không thể tải thư viện Supabase. Hãy đảm bảo script @supabase/supabase-js đã load trước app.js.');
+        console.warn('Supabase not available, but continuing with basic functionality');
+        // Setup basic toggle functionality even without Supabase
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', () => {
+                console.log('Setting up basic toggle buttons (fallback)');
+                setupToggleButtons();
+            }, { once: true });
+        } else {
+            console.log('Setting up basic toggle buttons (fallback)');
+            setupToggleButtons();
+        }
         return;
     }
 
@@ -72,37 +93,44 @@ function setupToggleButtons() {
     container = document.querySelector('.container');
     registerBtn = document.querySelector('.register-btn');
     loginBtn = document.querySelector('.login-btn');
-    
+
+    console.log('setupToggleButtons called');
+    console.log('Container found:', !!container);
+    console.log('Register button found:', !!registerBtn);
+    console.log('Login button found:', !!loginBtn);
+
     if (!container || !registerBtn || !loginBtn) {
-        console.error('Toggle elements not found');
+        console.error('Toggle elements not found', { container, registerBtn, loginBtn });
         return;
     }
 
     registerBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-    container.classList.add('active');
-    // Clear errors
-    document.querySelectorAll('.error-message').forEach(e => {
-        e.style.display = 'none';
-        e.textContent = '';
-    });
+        console.log('Register button clicked - adding active class');
+        container.classList.add('active');
+        // Clear errors
+        document.querySelectorAll('.error-message').forEach(e => {
+            e.style.display = 'none';
+            e.textContent = '';
+        });
         // Clear form inputs
         document.getElementById('loginForm')?.reset();
-});
+    });
 
     loginBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-    container.classList.remove('active');
-    // Clear errors
-    document.querySelectorAll('.error-message').forEach(e => {
-        e.style.display = 'none';
-        e.textContent = '';
-    });
+        console.log('Login button clicked - removing active class');
+        container.classList.remove('active');
+        // Clear errors
+        document.querySelectorAll('.error-message').forEach(e => {
+            e.style.display = 'none';
+            e.textContent = '';
+        });
         // Clear form inputs
         document.getElementById('registerForm')?.reset();
-});
+    });
     
     console.log('Toggle buttons setup complete');
 }
@@ -885,15 +913,16 @@ window.addEventListener('DOMContentLoaded', async () => {
         // Setup toggle buttons for login/register switching
         console.log('8. Setting up toggle buttons...');
         setupToggleButtons();
-        
-        console.log('9. Setting up password toggles...');
+        console.log('9. Toggle buttons setup completed');
+
+        console.log('10. Setting up password toggles...');
         setupPasswordToggles();
-    
+
         // Setup register form handler
-        console.log('10. Setting up register form...');
+        console.log('11. Setting up register form...');
         setupRegisterForm();
-    
-        console.log('11. All form handlers initialized');
+
+        console.log('12. All form handlers initialized');
     
     } catch (error) {
         console.error('=== CRITICAL ERROR in DOMContentLoaded ===');

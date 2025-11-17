@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Toggle</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+    <div class="container" id="authContainer">
+        <div class="form-box login">
+            <form>
+                <h1>Đăng Nhập</h1>
+                <button type="button" class="btn register-btn">Đăng Ký</button>
+            </form>
+        </div>
+
+        <div class="form-box register">
+            <form>
+                <h1>Đăng Ký</h1>
+                <button type="button" class="btn login-btn">Đăng Nhập</button>
+            </form>
+        </div>
+
+        <div class="toggle-box">
+            <div class="toggle-panel toggle-left">
+                <h1>Xin chào!</h1>
+                <p>Chưa có tài khoản?</p>
+                <button type="button" class="btn register-btn">Đăng Ký</button>
+            </div>
+
+            <div class="toggle-panel toggle-right">
+                <h1>Chào mừng trở lại!</h1>
+                <p>Đã có tài khoản?</p>
+                <button type="button" class="btn login-btn">Đăng Nhập</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple toggle test
+        const container = document.querySelector('.container');
+        const registerBtns = document.querySelectorAll('.register-btn');
+        const loginBtns = document.querySelectorAll('.login-btn');
+
+        registerBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Register clicked - adding active');
+                container.classList.add('active');
+            });
+        });
+
+        loginBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Login clicked - removing active');
+                container.classList.remove('active');
+            });
+        });
+
+        console.log('Test toggle setup complete');
+    </script>
+</body>
+</html>
