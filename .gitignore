@@ -10,8 +10,9 @@ yarn.lock
 
 # Credentials and secrets
 google-credentials.txt
-# Note: config.js contains Supabase public keys which are safe to commit for client-side apps
-# Only service_role key should never be committed
+config.js
+# Note: config.js should not be committed for security
+# Use config.example.js as template
 *.key
 *.pem
 .env
