@@ -1,69 +1,173 @@
 # Task Manager - Login System
 
-Hệ thống quản lý task với đăng nhập/đăng ký sử dụng Supabase.
+A modern task management system with authentication powered by Supabase.
 
-## 📁 Cấu Trúc Project
+## 📁 Project Structure
 
 ```
 task-manager-login/
-├── index.html              # Trang đăng nhập/đăng ký
-├── dashboard.html          # Trang dashboard quản lý task
+├── index.html              # Login/Registration page
+├── dashboard.html          # Task management dashboard
 │
-├── assets/                 # Tài nguyên tĩnh
+├── assets/                 # Static resources
 │   ├── css/
-│   │   ├── styles.css      # Styles cho trang login
-│   │   └── dashboard.css  # Styles cho trang dashboard
+│   │   ├── styles.css      # Styles for login page
+│   │   └── dashboard.css   # Styles for dashboard page
 │   └── js/
-│       ├── app.js          # Logic đăng nhập/đăng ký
-│       ├── config.js       # Cấu hình Supabase
-│       └── dashboard.js    # Logic dashboard
+│       ├── app.js          # Login/Registration logic
+│       ├── config.js       # Supabase configuration
+│       └── dashboard.js    # Dashboard logic
 │
-├── config/                 # File cấu hình
-│   ├── firebase-config.js  # Cấu hình Firebase (nếu cần)
-│   └── firebase-init.js    # Khởi tạo Firebase (nếu cần)
+├── config/                 # Configuration files
+│   ├── firebase-config.js  # Firebase configuration (if needed)
+│   └── firebase-init.js    # Firebase initialization (if needed)
 │
-├── docs/                   # Tài liệu
-│   ├── README.md           # Tài liệu chính
-│   ├── DEPLOY.md           # Hướng dẫn deploy
-│   └── ...                 # Các tài liệu khác
+├── docs/                   # Documentation
+│   ├── README.md           # Main documentation
+│   ├── DEPLOY.md           # Deployment guide
+│   └── ...                 # Other documentation files
 │
-├── scripts/                # Scripts tiện ích
-│   └── push-to-github.ps1  # Script push code lên GitHub
+├── scripts/                # Utility scripts
+│   └── push-to-github.ps1  # Script to push code to GitHub
 │
-├── templates/              # Templates tham khảo
+├── templates/              # Reference templates
 │   └── SignUp-LogIn-Form V2.0/
 │
 ├── .gitignore              # Git ignore rules
-├── netlify.toml            # Cấu hình Netlify
-└── vercel.json             # Cấu hình Vercel
+├── netlify.toml            # Netlify configuration
+└── vercel.json             # Vercel configuration
 ```
 
-## 🚀 Tính Năng
+## 🚀 Features
 
-- ✅ Đăng nhập/Đăng ký với Supabase
-- ✅ UI hiện đại với animation toggle
-- ✅ Quản lý session và authentication
-- ✅ Dashboard quản lý task
-- ✅ Responsive design
+- ✅ User authentication (Login/Registration) with Supabase
+- ✅ Modern UI with smooth toggle animations
+- ✅ Session management and secure authentication
+- ✅ Task management dashboard
+- ✅ Fully responsive design
+- ✅ Password visibility toggle
+- ✅ Remember me functionality
+- ✅ Form validation
 
-## 📝 Cấu Hình
+## 🛠️ Tech Stack
 
-Cấu hình Supabase được đặt trong `assets/js/config.js`.
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Backend**: Supabase (PostgreSQL + Authentication)
+- **Icons**: Boxicons
+- **Deployment**: GitHub Pages, Netlify, Vercel
+
+## 📝 Configuration
+
+Supabase configuration is located in `assets/js/config.js`.
+
+### Setup Supabase
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Get your project URL and anon key
+3. Update `assets/js/config.js` with your credentials:
+
+```javascript
+const supabaseUrl = 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+```
+
+### Database Schema
+
+The application requires the following tables in Supabase:
+
+- `users` - User accounts
+- `user_sessions` - Active user sessions
+- `tasks` - Task items
+- `notification_settings` - User notification preferences
 
 ## 🔧 Development
 
-1. Clone repository
-2. Mở `index.html` trong browser
-3. Cấu hình Supabase credentials trong `assets/js/config.js`
+### Prerequisites
 
-## 📚 Tài Liệu
+- A Supabase account and project
+- A modern web browser
+- (Optional) A local web server
 
-Xem thêm trong thư mục `docs/`:
-- `docs/README.md` - Tài liệu chi tiết
-- `docs/DEPLOY.md` - Hướng dẫn deploy
-- `docs/HUONG_DAN_DEPLOY.md` - Hướng dẫn deploy tiếng Việt
+### Getting Started
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Duy133009/task-manager-login.git
+   cd task-manager-login
+   ```
+
+2. Configure Supabase:
+   - Update `assets/js/config.js` with your Supabase credentials
+   - Set up the required database tables
+
+3. Open in browser:
+   - Simply open `index.html` in your browser, or
+   - Use a local server:
+     ```bash
+     # Using Python
+     python -m http.server 8000
+     
+     # Using Node.js
+     npx serve
+     ```
+
+4. Access the application:
+   - Login page: `http://localhost:8000/index.html`
+   - Dashboard: `http://localhost:8000/dashboard.html`
+
+## 📚 Documentation
+
+Additional documentation is available in the `docs/` directory:
+
+- `docs/README.md` - Detailed documentation
+- `docs/DEPLOY.md` - Deployment guide
+- `docs/HUONG_DAN_DEPLOY.md` - Vietnamese deployment guide
+- `docs/DEPLOY_QUICK.md` - Quick deployment guide
+
+## 🚀 Deployment
+
+This project can be deployed to:
+
+- **GitHub Pages**: Automatically via GitHub Actions
+- **Netlify**: Using `netlify.toml` configuration
+- **Vercel**: Using `vercel.json` configuration
+
+### GitHub Pages
+
+1. Push code to GitHub
+2. Go to repository Settings → Pages
+3. Select source branch (usually `main`)
+4. Your site will be available at `https://YOUR_USERNAME.github.io/task-manager-login/`
+
+## 🔒 Security
+
+- Passwords are hashed using SHA-256 before storage
+- Session tokens are securely generated and stored
+- All API keys should be kept in environment variables (not committed to Git)
+- The `.gitignore` file excludes sensitive files
+
+## 📱 Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-MIT
+This project is licensed under the MIT License.
 
+## 👤 Author
+
+**DuyTrinh**
+
+- GitHub: [@Duy133009](https://github.com/Duy133009)
+
+## 🙏 Acknowledgments
+
+- [Supabase](https://supabase.com) for the backend infrastructure
+- [Boxicons](https://boxicons.com) for the icon library
