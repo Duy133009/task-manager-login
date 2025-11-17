@@ -814,9 +814,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.error('Error checking session:', sessionError);
         // If session check fails, just show login form
         console.log('Session check failed, showing login form');
-                    localStorage.removeItem('user_id');
-                    localStorage.removeItem('user_data');
-                }
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
+    }
     
     // Close modal when clicking outside
     window.addEventListener('click', (e) => {
@@ -828,8 +828,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
         if (e.target === resetModal) {
             // Don't close reset modal on outside click (user must complete reset)
-    }
-});
+        }
+    });
 
     // Setup toggle buttons for login/register switching
     setupToggleButtons();
