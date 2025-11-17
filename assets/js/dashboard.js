@@ -1728,32 +1728,25 @@ async function sendReminderEmail(email, task) {
     }
 }
 
-// Logout - Using Supabase Auth
-async function logout() {
-    try {
-        console.log('Logging out...');
-        
-        // Sign out from Supabase Auth (this clears the session)
-        const { error } = await supabaseClient.auth.signOut();
-        
-        if (error) {
-            console.error('Error signing out:', error);
-        }
-        
-        // Clear localStorage
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_data');
-        
-        console.log('Logout successful, redirecting to login...');
+// Logout - Simple and reliable
+function logout() {
+    console.log('Starting logout...');
 
-        // Redirect immediately without blocking alert
-        window.location.replace('index.html');
-    } catch (error) {
-        console.error('Logout error:', error);
-        // Force redirect even if error
-        window.location.replace('index.html');
+    // Clear localStorage first
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_data');
+
+    // Sign out from Supabase (don't wait for it)
+    if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
+        supabaseClient.auth.signOut().catch(err => console.error('Sign out error:', err));
     }
+
+    console.log('Redirecting to login...');
+
+    // Redirect immediately
+    window.location.href = 'index.html';
+}
 
 // Success message function (currently not used for logout)
 function showSuccessMessage(message) {
