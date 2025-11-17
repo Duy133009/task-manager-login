@@ -29,13 +29,13 @@ body {
 }
 
 .container h1 {
-    font-size: 36px;
-    margin: -10px 0;
+    font-size: 32px;
+    margin: 10px 0;
 }
 
 .container p {
-    font-size: 14.5px;
-    margin: 15px 0;
+    font-size: 14px;
+    margin: 10px 0;
 }
 
 form {
@@ -50,11 +50,13 @@ form {
     background: #fff;
     display: flex;
     align-items: center;
+    justify-content: center;
     color: #333;
     text-align: center;
-    padding: 40px;
+    padding: 30px 40px;
     z-index: 1;
     transition: .6s ease-in-out 1.2s, visibility 0s 1s;
+    overflow-y: auto;
 }
 
 .container.active .form-box {
@@ -71,7 +73,7 @@ form {
 
 .input-box {
     position: relative;
-    margin: 30px 0;
+    margin: 20px 0;
 }
 
 .input-box input {
