@@ -1,5 +1,8 @@
 console.log('app.js starting...');
 
+// Declare global variables first
+let container, registerBtn, loginBtn;
+
 function showCriticalErrorScreen(message) {
     if (window.__appFailSafeTimer) {
         clearTimeout(window.__appFailSafeTimer);
@@ -40,16 +43,34 @@ function showCriticalErrorScreen(message) {
     console.log('createClient function:', typeof window.supabase?.createClient);
 
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
-        console.warn('Supabase not available, but continuing with basic functionality');
-        // Setup basic toggle functionality even without Supabase
-        if (document.readyState === 'loading') {
-            window.addEventListener('DOMContentLoaded', () => {
-                console.log('Setting up basic toggle buttons (fallback)');
-                setupToggleButtons();
-            }, { once: true });
-        } else {
+        console.warn('Supabase not available, continuing with basic toggle functionality');
+
+        // Setup basic toggle functionality
+        const setupBasicFeatures = () => {
             console.log('Setting up basic toggle buttons (fallback)');
-            setupToggleButtons();
+            try {
+                setupToggleButtons();
+                console.log('Basic toggle setup successful');
+            } catch (error) {
+                console.error('Failed to setup basic toggle:', error);
+                // Show user-friendly error
+                const container = document.querySelector('.container');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 50px; color: #666;">
+                            <h2>Không thể tải ứng dụng</h2>
+                            <p>Vui lòng kiểm tra kết nối mạng và tải lại trang.</p>
+                            <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px;">Tải lại trang</button>
+                        </div>
+                    `;
+                }
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            window.addEventListener('DOMContentLoaded', setupBasicFeatures, { once: true });
+        } else {
+            setupBasicFeatures();
         }
         return;
     }
@@ -87,8 +108,6 @@ function showCriticalErrorScreen(message) {
     console.log('Page loaded, waiting for DOM...');
 
 // Container toggle animation - Wait for DOM to load
-let container, registerBtn, loginBtn;
-
 function setupToggleButtons() {
     container = document.querySelector('.container');
     registerBtn = document.querySelector('.register-btn');
