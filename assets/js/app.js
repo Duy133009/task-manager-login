@@ -37,22 +37,37 @@ loginBtn.addEventListener('click', () => {
 });
 
 // Toggle password visibility with boxicons
-document.querySelectorAll('.toggle-password-icon').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const targetId = btn.dataset.target;
-        const input = document.getElementById(targetId);
-        const icon = btn.querySelector('i');
-        
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('bx-hide');
-            icon.classList.add('bx-show');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('bx-show');
-            icon.classList.add('bx-hide');
-        }
+function setupPasswordToggles() {
+    document.querySelectorAll('.toggle-password-icon').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            const input = document.getElementById(targetId);
+            const icon = btn.querySelector('i');
+            
+            if (input && input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bx-hide');
+                icon.classList.add('bx-show');
+            } else if (input) {
+                input.type = 'password';
+                icon.classList.remove('bx-show');
+                icon.classList.add('bx-hide');
+            }
+        });
     });
+}
+
+// Setup password toggles on page load
+setupPasswordToggles();
+
+// Re-setup when modals are opened (for dynamically added inputs)
+const observer = new MutationObserver(() => {
+    setupPasswordToggles();
+});
+
+observer.observe(document.body, {
+    childList: true,
+    subtree: true
 });
 
 // Login form handler - Using Supabase Auth
@@ -285,12 +300,158 @@ function showSuccess(message) {
     }, 5000);
 }
 
-// Check if user is already logged in
+// Forgot Password Functions
+function openForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').style.display = 'block';
+    document.getElementById('forgotPasswordError').style.display = 'none';
+    document.getElementById('forgotPasswordEmail').value = '';
+}
+
+function closeForgotPasswordModal() {
+    document.getElementById('forgotPasswordModal').style.display = 'none';
+    document.getElementById('forgotPasswordError').style.display = 'none';
+    document.getElementById('forgotPasswordForm').reset();
+}
+
+// Forgot Password Form Handler
+document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const btn = form.querySelector('.btn-primary');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoader = btn.querySelector('.btn-loader');
+    const errorDiv = document.getElementById('forgotPasswordError');
+    
+    const email = document.getElementById('forgotPasswordEmail').value.trim();
+    
+    // Show loading
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline-block';
+    errorDiv.style.display = 'none';
+    
+    try {
+        // Send password reset email using Supabase Auth
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/index.html?reset=true`
+        });
+        
+        if (error) {
+            if (error.message.includes('email')) {
+                throw new Error('Email không tồn tại trong hệ thống');
+            }
+            throw error;
+        }
+        
+        // Show success message
+        showSuccess('Đã gửi email đặt lại mật khẩu! Vui lòng kiểm tra hộp thư của bạn.');
+        
+        // Close modal after 2 seconds
+        setTimeout(() => {
+            closeForgotPasswordModal();
+        }, 2000);
+        
+    } catch (error) {
+        errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi gửi email';
+        errorDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btnText.style.display = 'inline-block';
+        btnLoader.style.display = 'none';
+    }
+});
+
+// Reset Password Form Handler (when user clicks link from email)
+document.getElementById('resetPasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const btn = form.querySelector('.btn-primary');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoader = btn.querySelector('.btn-loader');
+    const errorDiv = document.getElementById('resetPasswordError');
+    
+    const newPassword = document.getElementById('resetPasswordNew').value;
+    const confirmPassword = document.getElementById('resetPasswordConfirm').value;
+    
+    // Validation
+    if (newPassword !== confirmPassword) {
+        errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        errorDiv.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // Show loading
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline-block';
+    errorDiv.style.display = 'none';
+    
+    try {
+        // Update password using Supabase Auth
+        const { data, error } = await supabaseClient.auth.updateUser({
+            password: newPassword
+        });
+        
+        if (error) {
+            if (error.message.includes('session')) {
+                throw new Error('Link đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu link mới.');
+            }
+            throw error;
+        }
+        
+        // Show success and redirect
+        showSuccess('Đặt lại mật khẩu thành công! Đang chuyển đến trang đăng nhập...');
+        
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+        
+    } catch (error) {
+        errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi đặt lại mật khẩu';
+        errorDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btnText.style.display = 'inline-block';
+        btnLoader.style.display = 'none';
+    }
+});
+
+// Check if user is coming from password reset link
 window.addEventListener('DOMContentLoaded', async () => {
+    // Check URL parameters for password reset
+    const urlParams = new URLSearchParams(window.location.search);
+    const isReset = urlParams.get('reset');
+    const accessToken = urlParams.get('access_token');
+    const type = urlParams.get('type');
+    
+    // If coming from password reset email link
+    if (type === 'recovery' && accessToken) {
+        // Set the session with the access token
+        const { data, error } = await supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: urlParams.get('refresh_token') || ''
+        });
+        
+        if (!error && data.session) {
+            // Show reset password modal
+            document.getElementById('resetPasswordModal').style.display = 'block';
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+    
     // Check Supabase session
     const { data: { session }, error } = await supabaseClient.auth.getSession();
     
-    if (session && !error) {
+    if (session && !error && !isReset) {
         // User is logged in, redirect to dashboard
         window.location.href = 'dashboard.html';
     } else {
@@ -298,4 +459,17 @@ window.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_data');
     }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (e) => {
+        const forgotModal = document.getElementById('forgotPasswordModal');
+        const resetModal = document.getElementById('resetPasswordModal');
+        
+        if (e.target === forgotModal) {
+            closeForgotPasswordModal();
+        }
+        if (e.target === resetModal) {
+            // Don't close reset modal on outside click (user must complete reset)
+        }
+    });
 });
