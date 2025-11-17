@@ -25,55 +25,55 @@ function setupToggleButtons() {
         console.error('Toggle elements not found');
         return;
     }
-    
+
     registerBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        container.classList.add('active');
-        // Clear errors
-        document.querySelectorAll('.error-message').forEach(e => {
-            e.style.display = 'none';
-            e.textContent = '';
-        });
+    container.classList.add('active');
+    // Clear errors
+    document.querySelectorAll('.error-message').forEach(e => {
+        e.style.display = 'none';
+        e.textContent = '';
+    });
         // Clear form inputs
         document.getElementById('loginForm')?.reset();
-    });
-    
+});
+
     loginBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        container.classList.remove('active');
-        // Clear errors
-        document.querySelectorAll('.error-message').forEach(e => {
-            e.style.display = 'none';
-            e.textContent = '';
-        });
+    container.classList.remove('active');
+    // Clear errors
+    document.querySelectorAll('.error-message').forEach(e => {
+        e.style.display = 'none';
+        e.textContent = '';
+    });
         // Clear form inputs
         document.getElementById('registerForm')?.reset();
-    });
+});
     
     console.log('Toggle buttons setup complete');
 }
 
 // Toggle password visibility with boxicons
 function setupPasswordToggles() {
-    document.querySelectorAll('.toggle-password-icon').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.dataset.target;
-            const input = document.getElementById(targetId);
-            const icon = btn.querySelector('i');
-            
+document.querySelectorAll('.toggle-password-icon').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const input = document.getElementById(targetId);
+        const icon = btn.querySelector('i');
+        
             if (input && input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('bx-hide');
-                icon.classList.add('bx-show');
+            input.type = 'text';
+            icon.classList.remove('bx-hide');
+            icon.classList.add('bx-show');
             } else if (input) {
-                input.type = 'password';
-                icon.classList.remove('bx-show');
-                icon.classList.add('bx-hide');
-            }
-        });
+            input.type = 'password';
+            icon.classList.remove('bx-show');
+            icon.classList.add('bx-hide');
+        }
     });
+});
 }
 
 // Setup password toggles on page load (will be called again in DOMContentLoaded)
@@ -127,7 +127,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 .select('email')
                 .eq('username', usernameOrEmail)
                 .single();
-            
+        
             if (lookupError || !userData) {
                 errorDiv.textContent = 'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.';
                 errorDiv.style.display = 'block';
@@ -158,7 +158,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             
             // Handle different error types with clear, user-friendly messages
             let errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
-            
+        
             if (authError.message.includes('Invalid login credentials') || 
                 authError.message.includes('Invalid credentials') ||
                 authError.message.includes('Email rate limit exceeded') ||
@@ -223,13 +223,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             } else {
                 // Use newly created profile
                 const profile = newProfile;
-                
-                // Update last login
-                await supabaseClient
-                    .from('users')
-                    .update({ last_login: new Date().toISOString() })
+        
+        // Update last login
+        await supabaseClient
+            .from('users')
+            .update({ last_login: new Date().toISOString() })
                     .eq('id', userId);
-                
+        
                 // Store user data
                 localStorage.setItem('user_id', profile.id);
                 localStorage.setItem('user_data', JSON.stringify({
@@ -259,12 +259,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             console.warn('Could not load or create user profile');
             // Store minimal data from auth anyway
             localStorage.setItem('user_id', userId);
-            localStorage.setItem('user_data', JSON.stringify({
+        localStorage.setItem('user_data', JSON.stringify({
                 id: userId,
                 username: authData.user.email.split('@')[0],
                 email: authData.user.email,
                 full_name: authData.user.user_metadata?.full_name || ''
-            }));
+        }));
         }
         
         // Show success and redirect
@@ -302,17 +302,17 @@ function setupRegisterForm() {
     console.log('Setting up register form handler');
     
     registerForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    e.preventDefault();
         e.stopPropagation();
         
         console.log('Register form submitted');
-        
-        const form = e.target;
-        const btn = form.querySelector('.btn-primary');
-        const btnText = btn.querySelector('.btn-text');
-        const btnLoader = btn.querySelector('.btn-loader');
-        const errorDiv = document.getElementById('registerError');
-        
+    
+    const form = e.target;
+    const btn = form.querySelector('.btn-primary');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoader = btn.querySelector('.btn-loader');
+    const errorDiv = document.getElementById('registerError');
+    
         if (!btn || !errorDiv) {
             console.error('Register form elements not found', { btn, errorDiv });
             return;
@@ -325,8 +325,8 @@ function setupRegisterForm() {
         const confirmPassword = document.getElementById('confirmPassword')?.value || '';
         
         console.log('Register form data:', { fullName, username, email, passwordLength: password.length });
-        
-        // Validation
+    
+    // Validation
         if (!fullName) {
             errorDiv.textContent = 'Vui lòng nhập họ và tên';
             errorDiv.style.display = 'block';
@@ -351,38 +351,38 @@ function setupRegisterForm() {
             return;
         }
         
-        if (password !== confirmPassword) {
-            errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
-            errorDiv.style.display = 'block';
-            return;
-        }
-        
-        if (password.length < 6) {
-            errorDiv.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
-            errorDiv.style.display = 'block';
-            return;
-        }
+    if (password !== confirmPassword) {
+        errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
+        errorDiv.style.display = 'block';
+        return;
+    }
     
-        // Show loading
-        btn.disabled = true;
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'inline-block';
-        errorDiv.style.display = 'none';
-        
-        try {
+    if (password.length < 6) {
+        errorDiv.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // Show loading
+    btn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'inline-block';
+    errorDiv.style.display = 'none';
+    
+    try {
             console.log('Starting registration process...');
             
             // Check if username already exists
             const { data: existingUsername, error: usernameCheckError } = await supabaseClient
-                .from('users')
+            .from('users')
                 .select('username')
                 .eq('username', username)
                 .single();
-            
+        
             if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
                 throw usernameCheckError;
             }
-            
+        
             if (existingUsername) {
                 throw new Error('Tên đăng nhập đã tồn tại');
             }
@@ -404,27 +404,27 @@ function setupRegisterForm() {
             if (authError) {
                 console.error('Auth error:', authError);
                 if (authError.message.includes('already registered')) {
-                    throw new Error('Email đã được sử dụng');
-                }
+                throw new Error('Email đã được sử dụng');
+            }
                 throw authError;
             }
             
             console.log('Auth signup successful, user ID:', authData.user?.id);
-            
+        
             // Create user profile in users table
             // Note: This should ideally be done via database trigger or Edge Function
             // For now, we'll insert after auth signup
             if (authData.user) {
                 const { error: profileError } = await supabaseClient
-                    .from('users')
-                    .insert({
+            .from('users')
+            .insert({
                         id: authData.user.id, // Use auth user ID
-                        username: username,
-                        email: email,
+                username: username,
+                email: email,
                         full_name: fullName,
                         email_verified: false
                     });
-                
+        
                 if (profileError) {
                     console.error('Error creating user profile:', profileError);
                     // Don't throw - auth user is already created
@@ -432,13 +432,13 @@ function setupRegisterForm() {
                     console.log('User profile created successfully');
                 }
             }
-            
-            // Show success
+        
+        // Show success
             showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
-            
+        
             // Clear form first
-            form.reset();
-            
+        form.reset();
+        
             // Switch to login form after 1.5 seconds
             setTimeout(() => {
                 // Ensure container is available
@@ -466,7 +466,7 @@ function setupRegisterForm() {
                 });
             }, 1500);
             
-        } catch (error) {
+    } catch (error) {
             console.error('Register error:', error);
             let errorMessage = 'Đã xảy ra lỗi khi đăng ký';
             
@@ -477,14 +477,14 @@ function setupRegisterForm() {
             }
             
             errorDiv.textContent = errorMessage;
-            errorDiv.style.display = 'block';
-        } finally {
-            btn.disabled = false;
-            btnText.style.display = 'inline-block';
-            btnLoader.style.display = 'none';
-        }
-    });
-    
+        errorDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btnText.style.display = 'inline-block';
+        btnLoader.style.display = 'none';
+    }
+});
+
     console.log('Register form handler set up successfully');
 }
 
@@ -546,45 +546,43 @@ document.getElementById('forgotPasswordForm').addEventListener('submit', async (
     errorDiv.style.display = 'none';
     
     try {
-        // Get Supabase URL from config
-        const supabaseUrl = SUPABASE_CONFIG.url;
-        const edgeFunctionUrl = `${supabaseUrl}/functions/v1/reset-password`;
+        console.log('Sending password reset email to:', email);
         
-        console.log('Calling Edge Function to reset password for:', email);
+        // Use Supabase Auth to send password reset email
+        // User will receive email with link to reset password
+        const redirectUrl = window.location.origin + '/index.html';
         
-        // Call Edge Function to reset password directly
-        const response = await fetch(edgeFunctionUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
-            },
-            body: JSON.stringify({
-                email: email,
-                newPassword: newPassword
-            })
+        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: redirectUrl
         });
         
-        const result = await response.json();
-        
-        if (!response.ok) {
-            if (result.error && result.error.includes('not found')) {
+        if (error) {
+            console.error('Reset password error:', error);
+            if (error.message.includes('User not found')) {
                 throw new Error('Email không tồn tại trong hệ thống');
             }
-            throw new Error(result.error || 'Đã xảy ra lỗi khi đặt lại mật khẩu');
+            throw error;
         }
         
-        // Success
-        showSuccess('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.');
+        // Success - email has been sent
+        showSuccess('Email đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra hộp thư của bạn.');
         
-        // Close modal after 2 seconds
+        // Close modal after 3 seconds
         setTimeout(() => {
             closeForgotPasswordModal();
-        }, 2000);
+        }, 3000);
         
     } catch (error) {
         console.error('Password reset error:', error);
-        errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi đặt lại mật khẩu';
+        let errorMessage = 'Đã xảy ra lỗi khi gửi email đặt lại mật khẩu';
+        
+        if (error.message) {
+            errorMessage = error.message;
+        } else if (error.error_description) {
+            errorMessage = error.error_description;
+        }
+        
+        errorDiv.textContent = errorMessage;
         errorDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
@@ -756,13 +754,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     const { data: { session }, error } = await supabaseClient.auth.getSession();
     
     if (session && !error && !isReset) {
-        // User is logged in, redirect to dashboard
-        window.location.href = 'dashboard.html';
-    } else {
+                    // User is logged in, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
         // Clear any old localStorage data
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_data');
-    }
+                    localStorage.removeItem('user_id');
+                    localStorage.removeItem('user_data');
+                }
     
     // Close modal when clicking outside
     window.addEventListener('click', (e) => {
@@ -774,9 +772,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
         if (e.target === resetModal) {
             // Don't close reset modal on outside click (user must complete reset)
-        }
-    });
-    
+    }
+});
+
     // Setup toggle buttons for login/register switching
     setupToggleButtons();
     setupPasswordToggles();
