@@ -514,7 +514,7 @@ function setupRegisterForm() {
             }
             
             console.log('Auth signup successful, user ID:', authData.user?.id);
-        
+
             // Check if user needs email confirmation
             if (authData.user && !authData.session) {
                 console.warn('User created but no session - email confirmation may be required');
@@ -523,10 +523,36 @@ function setupRegisterForm() {
                 form.reset();
                 return;
             }
-        
-            // User profile is automatically created by database trigger (handle_new_user)
-            // No need to manually insert into users table
-            console.log('User profile will be created by trigger automatically');
+
+            // Try to create user profile manually in case trigger doesn't work
+            console.log('Creating user profile manually...');
+            try {
+                const { data: profileData, error: profileError } = await supabaseClient
+                    .from('users')
+                    .upsert({
+                        id: authData.user.id,
+                        email: authData.user.email,
+                        username: username,
+                        full_name: fullName,
+                        email_verified: authData.user.email_confirmed_at ? true : false,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'id'
+                    })
+                    .select()
+                    .single();
+
+                if (profileError) {
+                    console.error('Error creating user profile:', profileError);
+                    // Don't throw error, continue with success flow
+                } else {
+                    console.log('User profile created/updated successfully:', profileData);
+                }
+            } catch (error) {
+                console.error('Failed to create user profile:', error);
+                // Don't throw error, continue with success flow
+            }
         
             // If we have a session, user is logged in - redirect to dashboard immediately
             if (authData.session) {
