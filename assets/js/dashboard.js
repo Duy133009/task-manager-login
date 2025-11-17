@@ -1728,21 +1728,31 @@ async function sendReminderEmail(email, task) {
     }
 }
 
-// Logout
-function logout() {
-    const token = localStorage.getItem('auth_token');
-    
-    if (token) {
-        supabaseClient
-            .from('user_sessions')
-            .delete()
-            .eq('token', token);
+// Logout - Using Supabase Auth
+async function logout() {
+    try {
+        console.log('Logging out...');
+        
+        // Sign out from Supabase Auth (this clears the session)
+        const { error } = await supabaseClient.auth.signOut();
+        
+        if (error) {
+            console.error('Error signing out:', error);
+        }
+        
+        // Clear localStorage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
+        
+        console.log('Logout successful, redirecting to login...');
+        
+        // Redirect to login page
+        window.location.replace('index.html');
+    } catch (error) {
+        console.error('Logout error:', error);
+        // Force redirect even if error
+        window.location.replace('index.html');
     }
-
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('user_data');
-
-    window.location.href = 'index.html';
 }
 

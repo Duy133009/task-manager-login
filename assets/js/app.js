@@ -57,23 +57,47 @@ function setupToggleButtons() {
 
 // Toggle password visibility with boxicons
 function setupPasswordToggles() {
-document.querySelectorAll('.toggle-password-icon').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const targetId = btn.dataset.target;
-        const input = document.getElementById(targetId);
-        const icon = btn.querySelector('i');
+    console.log('Setting up password toggles...');
+    
+    document.querySelectorAll('.toggle-password-icon').forEach(btn => {
+        // Remove old listeners by cloning
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
         
-            if (input && input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('bx-hide');
-            icon.classList.add('bx-show');
-            } else if (input) {
-            input.type = 'password';
-            icon.classList.remove('bx-show');
-            icon.classList.add('bx-hide');
-        }
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const targetId = newBtn.dataset.target;
+            const input = document.getElementById(targetId);
+            const icon = newBtn.querySelector('i');
+            
+            console.log('Toggle password clicked for:', targetId);
+            
+            if (!input) {
+                console.error('Input not found:', targetId);
+                return;
+            }
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) {
+                    icon.classList.remove('bx-hide');
+                    icon.classList.add('bx-show');
+                }
+                console.log('Password shown');
+            } else {
+                input.type = 'password';
+                if (icon) {
+                    icon.classList.remove('bx-show');
+                    icon.classList.add('bx-hide');
+                }
+                console.log('Password hidden');
+            }
+        });
     });
-});
+    
+    console.log('Password toggles set up, found buttons:', document.querySelectorAll('.toggle-password-icon').length);
 }
 
 // Setup password toggles on page load (will be called again in DOMContentLoaded)
