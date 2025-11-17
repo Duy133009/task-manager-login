@@ -1,28 +1,59 @@
-// Load config first
-// Make sure config.js is loaded before this file in HTML
+console.log('app.js starting...');
 
-// Initialize Supabase from config
-const supabaseUrl = window.SUPABASE_URL || 
-                    (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.url : null) ||
-                    'YOUR_SUPABASE_URL_HERE';
+function showCriticalErrorScreen(message) {
+    console.error(message);
+    window.addEventListener('DOMContentLoaded', () => {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const authContainer = document.getElementById('authContainer');
 
-const supabaseAnonKey = window.SUPABASE_ANON_KEY || 
-                        (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
-                        'YOUR_SUPABASE_ANON_KEY_HERE';
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
 
-// Validate config
-if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
-    console.error('⚠️ Supabase configuration is missing! Please check config.js');
-    console.error('URL:', supabaseUrl);
-    console.error('Key:', supabaseAnonKey ? 'Set' : 'Missing');
+        if (authContainer) {
+            authContainer.style.opacity = '1';
+            authContainer.innerHTML = `
+                <div class="critical-error-message">
+                    <h2>Không thể tải ứng dụng</h2>
+                    <p>${message}</p>
+                    <p>Vui lòng kiểm tra kết nối mạng hoặc tải lại trang sau ít phút.</p>
+                </div>
+            `;
+        }
+    });
 }
 
-const { createClient } = supabase;
-const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+(function initAuthApp() {
+    if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+        showCriticalErrorScreen('Không thể tải thư viện Supabase. Hãy đảm bảo script @supabase/supabase-js đã load trước app.js.');
+        return;
+    }
 
-console.log('Supabase client initialized');
-console.log('URL:', supabaseUrl);
-console.log('Page loaded, waiting for DOM...');
+    // Load config first
+    // Make sure config.js is loaded before this file in HTML
+
+    // Initialize Supabase from config
+    const supabaseUrl = window.SUPABASE_URL || 
+                        (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.url : null) ||
+                        'YOUR_SUPABASE_URL_HERE';
+
+    const supabaseAnonKey = window.SUPABASE_ANON_KEY || 
+                            (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
+                            'YOUR_SUPABASE_ANON_KEY_HERE';
+
+    // Validate config
+    if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+        console.error('⚠️ Supabase configuration is missing! Please check config.js');
+        console.error('URL:', supabaseUrl);
+        console.error('Key:', supabaseAnonKey ? 'Set' : 'Missing');
+    }
+
+    const { createClient } = window.supabase;
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+    console.log('Supabase client initialized');
+    console.log('URL:', supabaseUrl);
+    console.log('Page loaded, waiting for DOM...');
 
 // Container toggle animation - Wait for DOM to load
 let container, registerBtn, loginBtn;
@@ -737,7 +768,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         sensitiveParams.forEach(param => {
             if (urlParams.has(param)) {
                 urlParams.delete(param);
-                urlChanged = false;
+                urlChanged = true;
             }
         });
     
@@ -811,9 +842,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         
             if (session && !error && !isReset && !type) {
                 console.log('User already logged in, redirecting to dashboard...');
-                // User is logged in, redirect to dashboard
-                window.location.href = 'dashboard.html';
-            } else {
+                    // User is logged in, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
                 console.log('No active session, showing login form');
                 // Clear any old localStorage data
                 localStorage.removeItem('user_id');
@@ -823,9 +854,9 @@ window.addEventListener('DOMContentLoaded', async () => {
             console.error('Error checking session:', sessionError);
             // If session check fails, just show login form
             console.log('6. Session check failed, showing login form');
-            localStorage.removeItem('user_id');
-            localStorage.removeItem('user_data');
-        }
+                    localStorage.removeItem('user_id');
+                    localStorage.removeItem('user_data');
+                }
     
         // Close modal when clicking outside
         console.log('7. Setting up modal close handlers...');
@@ -876,3 +907,5 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.log('=== Page ready! ===');
     }
 });
+
+})();
