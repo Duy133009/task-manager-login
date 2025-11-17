@@ -734,12 +734,12 @@ window.addEventListener('DOMContentLoaded', async () => {
         const sensitiveParams = ['username', 'password', 'email', 'token'];
         let urlChanged = false;
     
-    sensitiveParams.forEach(param => {
-        if (urlParams.has(param)) {
-            urlParams.delete(param);
-            urlChanged = true;
-        }
-    });
+        sensitiveParams.forEach(param => {
+            if (urlParams.has(param)) {
+                urlParams.delete(param);
+                urlChanged = false;
+            }
+        });
     
         // Update URL if sensitive params were removed
         if (urlChanged) {
@@ -754,77 +754,78 @@ window.addEventListener('DOMContentLoaded', async () => {
         const accessToken = urlParams.get('access_token');
         const type = urlParams.get('type');
     
-    // If coming from password reset email link
-    if (type === 'recovery' && accessToken) {
-        console.log('Processing password reset link...');
+        // If coming from password reset email link
+        if (type === 'recovery' && accessToken) {
+            console.log('Processing password reset link...');
         
-        // Set the session with the access token
-        const { data, error } = await supabaseClient.auth.setSession({
-            access_token: accessToken,
-            refresh_token: urlParams.get('refresh_token') || ''
-        });
+            // Set the session with the access token
+            const { data, error } = await supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: urlParams.get('refresh_token') || ''
+            });
         
-        if (error) {
-            console.error('Error setting session from reset link:', error);
+            if (error) {
+                console.error('Error setting session from reset link:', error);
             
-            // Handle specific errors
-            if (error.message.includes('expired') || error.message.includes('invalid')) {
-                alert('Link đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu link mới.');
-                // Clean URL and redirect
-                window.history.replaceState({}, document.title, window.location.pathname);
-                return;
-            }
+                // Handle specific errors
+                if (error.message.includes('expired') || error.message.includes('invalid')) {
+                    alert('Link đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu link mới.');
+                    // Clean URL and redirect
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    return;
+                }
             
-            // Show error in modal if exists
-            const resetModal = document.getElementById('resetPasswordModal');
-            if (resetModal) {
-                resetModal.style.display = 'block';
-                const errorDiv = document.getElementById('resetPasswordError');
-                if (errorDiv) {
-                    errorDiv.textContent = 'Link đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu link mới.';
-                    errorDiv.style.display = 'block';
+                // Show error in modal if exists
+                const resetModal = document.getElementById('resetPasswordModal');
+                if (resetModal) {
+                    resetModal.style.display = 'block';
+                    const errorDiv = document.getElementById('resetPasswordError');
+                    if (errorDiv) {
+                        errorDiv.textContent = 'Link đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu link mới.';
+                        errorDiv.style.display = 'block';
+                    }
+                }
+            } else if (data && data.session) {
+                console.log('Session set successfully, showing reset password modal');
+                // Show reset password modal
+                const resetModal = document.getElementById('resetPasswordModal');
+                if (resetModal) {
+                    resetModal.style.display = 'block';
+                    // Clean URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }
-        } else if (data && data.session) {
-            console.log('Session set successfully, showing reset password modal');
-            // Show reset password modal
-            const resetModal = document.getElementById('resetPasswordModal');
-            if (resetModal) {
-                resetModal.style.display = 'block';
-                // Clean URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
         }
-    }
     
         // Check Supabase session (with timeout to prevent hanging)
         console.log('4. Checking Supabase session...');
         
-        const sessionPromise = supabaseClient.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Session check timeout')), 5000)
-        );
+        try {
+            const sessionPromise = supabaseClient.auth.getSession();
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Session check timeout')), 5000)
+            );
         
-        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
-        console.log('5. Session checked:', session ? 'exists' : 'none');
+            const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+            console.log('5. Session checked:', session ? 'exists' : 'none');
         
-        if (session && !error && !isReset && !type) {
-            console.log('User already logged in, redirecting to dashboard...');
-            // User is logged in, redirect to dashboard
-            window.location.href = 'dashboard.html';
-        } else {
-            console.log('No active session, showing login form');
-            // Clear any old localStorage data
+            if (session && !error && !isReset && !type) {
+                console.log('User already logged in, redirecting to dashboard...');
+                // User is logged in, redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                console.log('No active session, showing login form');
+                // Clear any old localStorage data
+                localStorage.removeItem('user_id');
+                localStorage.removeItem('user_data');
+            }
+        } catch (sessionError) {
+            console.error('Error checking session:', sessionError);
+            // If session check fails, just show login form
+            console.log('6. Session check failed, showing login form');
             localStorage.removeItem('user_id');
             localStorage.removeItem('user_data');
         }
-    } catch (sessionError) {
-        console.error('Error checking session:', sessionError);
-        // If session check fails, just show login form
-        console.log('6. Session check failed, showing login form');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_data');
-    }
     
         // Close modal when clicking outside
         console.log('7. Setting up modal close handlers...');
