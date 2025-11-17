@@ -810,21 +810,21 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         if (session && !error && !isReset && !type) {
             console.log('User already logged in, redirecting to dashboard...');
-                    // User is logged in, redirect to dashboard
-                    window.location.href = 'dashboard.html';
-                } else {
+            // User is logged in, redirect to dashboard
+            window.location.href = 'dashboard.html';
+        } else {
             console.log('No active session, showing login form');
             // Clear any old localStorage data
             localStorage.removeItem('user_id');
             localStorage.removeItem('user_data');
         }
-        } catch (sessionError) {
-            console.error('Error checking session:', sessionError);
-            // If session check fails, just show login form
-            console.log('6. Session check failed, showing login form');
-            localStorage.removeItem('user_id');
-            localStorage.removeItem('user_data');
-        }
+    } catch (sessionError) {
+        console.error('Error checking session:', sessionError);
+        // If session check fails, just show login form
+        console.log('6. Session check failed, showing login form');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
+    }
     
         // Close modal when clicking outside
         console.log('7. Setting up modal close handlers...');
