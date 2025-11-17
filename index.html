@@ -143,9 +143,9 @@
 
     <!-- <script src="assets/js/app.js"></script> -->
     <script>
-        // Simple toggle test for production
+        // Simple toggle and form test for production
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, setting up toggle...');
+            console.log('DOM loaded, setting up toggle and forms...');
 
             const container = document.querySelector('.container');
             const registerBtns = document.querySelectorAll('.register-btn');
@@ -155,6 +155,7 @@
             console.log('Register buttons found:', registerBtns.length);
             console.log('Login buttons found:', loginBtns.length);
 
+            // Toggle functionality
             registerBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -171,7 +172,45 @@
                 });
             });
 
-            console.log('Toggle setup complete');
+            // Form handlers for testing
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Login form submitted');
+
+                    const username = document.getElementById('loginUsername').value;
+                    const password = document.getElementById('loginPassword').value;
+
+                    console.log('Login attempt:', { username, passwordLength: password.length });
+
+                    // For testing - redirect to dashboard
+                    alert('Đăng nhập thành công! Chuyển đến dashboard...');
+                    window.location.href = 'dashboard.html';
+                });
+            }
+
+            if (registerForm) {
+                registerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    console.log('Register form submitted');
+
+                    const fullName = document.getElementById('registerFullName').value;
+                    const username = document.getElementById('registerUsername').value;
+                    const email = document.getElementById('registerEmail').value;
+                    const password = document.getElementById('registerPassword').value;
+
+                    console.log('Register attempt:', { fullName, username, email, passwordLength: password.length });
+
+                    // For testing - show success and switch to login
+                    alert('Đăng ký thành công! Chuyển sang đăng nhập...');
+                    container.classList.remove('active');
+                });
+            }
+
+            console.log('Toggle and form setup complete');
         });
     </script>
 </body>
