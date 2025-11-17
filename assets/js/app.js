@@ -215,9 +215,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         // Show success and redirect
         showSuccess('Đăng nhập thành công! Đang chuyển hướng...');
         
+        // Clear form
+        form.reset();
+        
         // Small delay to show success message, then redirect
         setTimeout(() => {
-            window.location.href = 'dashboard.html';
+            // Use replace instead of href to prevent back button issues and clean URL
+            window.location.replace('dashboard.html');
         }, 500);
         
     } catch (error) {
