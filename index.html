@@ -7,8 +7,37 @@
     <link rel="stylesheet" href="assets/css/styles.css">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Load config before app.js -->
-    <script src="assets/js/config.js"></script>
+
+    <!-- Load SOLID Architecture Dependencies -->
+    <script src="assets/js/core/constants.js"></script>
+    <script src="assets/js/core/config.js"></script>
+
+    <!-- Load Types -->
+    <script src="assets/js/core/types/User.js"></script>
+    <script src="assets/js/core/types/Task.js"></script>
+
+    <!-- Load Interfaces -->
+    <script src="assets/js/core/interfaces/IAuthenticator.js"></script>
+    <script src="assets/js/core/interfaces/ITaskRepository.js"></script>
+    <script src="assets/js/core/interfaces/ITaskService.js"></script>
+    <script src="assets/js/core/interfaces/IUIService.js"></script>
+    <script src="assets/js/core/interfaces/IErrorHandler.js"></script>
+
+    <!-- Load Services -->
+    <script src="assets/js/services/ui/ToastUIService.js"></script>
+    <script src="assets/js/services/ui/ErrorHandler.js"></script>
+    <script src="assets/js/services/auth/SupabaseAuthenticator.js"></script>
+    <script src="assets/js/services/auth/AuthService.js"></script>
+    <script src="assets/js/services/tasks/TaskValidator.js"></script>
+    <script src="assets/js/services/tasks/TaskRepository.js"></script>
+    <script src="assets/js/services/tasks/TaskService.js"></script>
+
+    <!-- Load Controllers -->
+    <script src="assets/js/controllers/AuthController.js"></script>
+    <script src="assets/js/controllers/TaskController.js"></script>
+
+    <!-- Load Utils -->
+    <script src="assets/js/utils/validation.js"></script>
 </head>
 <body>
     <div class="container" id="authContainer">

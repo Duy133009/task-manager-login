@@ -6,11 +6,43 @@
     <title>Tasks - Dashboard</title>
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <!-- Supabase Configuration for Production -->
     <script>
       window.SUPABASE_URL = 'https://hiojtrjfatfxbffrihnx.supabase.co';
       window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpb2p0cmpmYXRmeGJmZnJpaG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk1NjEsImV4cCI6MjA3ODE0NTU2MX0.HuCpZ2HaNrPXrh6mGR9aH6VGQXEQyDFHzP3_ep9f8Eg';
     </script>
+
+    <!-- Load SOLID Architecture Dependencies -->
+    <script src="assets/js/core/constants.js"></script>
+    <script src="assets/js/core/config.js"></script>
+
+    <!-- Load Types -->
+    <script src="assets/js/core/types/User.js"></script>
+    <script src="assets/js/core/types/Task.js"></script>
+
+    <!-- Load Interfaces -->
+    <script src="assets/js/core/interfaces/IAuthenticator.js"></script>
+    <script src="assets/js/core/interfaces/ITaskRepository.js"></script>
+    <script src="assets/js/core/interfaces/ITaskService.js"></script>
+    <script src="assets/js/core/interfaces/IUIService.js"></script>
+    <script src="assets/js/core/interfaces/IErrorHandler.js"></script>
+
+    <!-- Load Services -->
+    <script src="assets/js/services/ui/ToastUIService.js"></script>
+    <script src="assets/js/services/ui/ErrorHandler.js"></script>
+    <script src="assets/js/services/auth/SupabaseAuthenticator.js"></script>
+    <script src="assets/js/services/auth/AuthService.js"></script>
+    <script src="assets/js/services/tasks/TaskValidator.js"></script>
+    <script src="assets/js/services/tasks/TaskRepository.js"></script>
+    <script src="assets/js/services/tasks/TaskService.js"></script>
+
+    <!-- Load Controllers -->
+    <script src="assets/js/controllers/AuthController.js"></script>
+    <script src="assets/js/controllers/TaskController.js"></script>
+
+    <!-- Load Utils -->
+    <script src="assets/js/utils/validation.js"></script>
 </head>
 <body>
     <!-- Top Header Bar -->
