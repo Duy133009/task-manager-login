@@ -1047,6 +1047,7 @@ async function handleNewTask(e) {
         };
 
         console.log('Creating task with data:', taskData);
+        console.log('Current user ID:', currentUserId);
 
         const { data, error } = await supabaseClient
             .from('tasks')
@@ -1055,7 +1056,23 @@ async function handleNewTask(e) {
 
         if (error) {
             console.error('Supabase error:', error);
-            throw error;
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.details);
+            console.error('Error hint:', error.hint);
+            
+            // Show detailed error message
+            let errorMessage = 'Có lỗi xảy ra khi tạo task';
+            if (error.code === '42501') {
+                errorMessage = 'Bạn không có quyền tạo task. Vui lòng kiểm tra RLS policies.';
+            } else if (error.code === '23503') {
+                errorMessage = 'Lỗi: User ID hoặc assigned_to không hợp lệ.';
+            } else if (error.message) {
+                errorMessage = `Lỗi: ${error.message}`;
+            }
+            
+            alert(errorMessage);
+            return;
         }
 
         console.log('Task created successfully:', data);
@@ -1064,7 +1081,7 @@ async function handleNewTask(e) {
         await loadTasks();
     } catch (error) {
         console.error('Error creating task:', error);
-        alert('Có lỗi xảy ra khi tạo task');
+        alert(`Có lỗi xảy ra khi tạo task: ${error.message || 'Lỗi không xác định'}`);
     }
 }
 

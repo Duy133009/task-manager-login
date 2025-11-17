@@ -76,8 +76,14 @@ function setupPasswordToggles() {
     });
 }
 
-// Setup password toggles on page load
-setupPasswordToggles();
+// Setup password toggles on page load (will be called again in DOMContentLoaded)
+// This ensures it works even if DOMContentLoaded already fired
+if (document.readyState === 'loading') {
+    // DOM not ready yet, will be called in DOMContentLoaded
+} else {
+    // DOM already loaded
+    setupPasswordToggles();
+}
 
 // Re-setup when modals are opened (for dynamically added inputs)
 const observer = new MutationObserver(() => {
@@ -331,10 +337,12 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         }
         
         // Sign up using Supabase Auth
+        // Disable email confirmation - allow immediate login
         const { data: authData, error: authError } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
+                emailRedirectTo: null, // Disable email confirmation
                 data: {
                     full_name: fullName,
                     username: username
@@ -370,17 +378,37 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         }
         
         // Show success
-        showSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
+        showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
         
-        // Switch to login form after 2 seconds
-        setTimeout(() => {
-            container.classList.remove('active');
-            // Pre-fill email
-            document.getElementById('loginUsername').value = email;
-        }, 2000);
-        
-        // Clear form
+        // Clear form first
         form.reset();
+        
+        // Switch to login form after 1.5 seconds
+        setTimeout(() => {
+            // Ensure container is available
+            const containerEl = document.querySelector('.container');
+            if (containerEl) {
+                containerEl.classList.remove('active');
+                console.log('Switched to login form');
+            } else {
+                console.error('Container not found for switching');
+            }
+            
+            // Pre-fill email in login form
+            const loginEmailInput = document.getElementById('loginUsername');
+            if (loginEmailInput) {
+                loginEmailInput.value = email;
+                console.log('Pre-filled email:', email);
+            } else {
+                console.error('Login email input not found');
+            }
+            
+            // Clear any errors
+            document.querySelectorAll('.error-message').forEach(e => {
+                e.style.display = 'none';
+                e.textContent = '';
+            });
+        }, 1500);
         
     } catch (error) {
         errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi đăng ký';
@@ -416,7 +444,7 @@ function closeForgotPasswordModal() {
     document.getElementById('forgotPasswordForm').reset();
 }
 
-// Forgot Password Form Handler
+// Forgot Password Form Handler - Direct password reset using Edge Function
 document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -427,6 +455,21 @@ document.getElementById('forgotPasswordForm').addEventListener('submit', async (
     const errorDiv = document.getElementById('forgotPasswordError');
     
     const email = document.getElementById('forgotPasswordEmail').value.trim();
+    const newPassword = document.getElementById('forgotPasswordNew').value;
+    const confirmPassword = document.getElementById('forgotPasswordConfirm').value;
+    
+    // Validation
+    if (newPassword !== confirmPassword) {
+        errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        errorDiv.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
+        errorDiv.style.display = 'block';
+        return;
+    }
     
     // Show loading
     btn.disabled = true;
@@ -435,30 +478,36 @@ document.getElementById('forgotPasswordForm').addEventListener('submit', async (
     errorDiv.style.display = 'none';
     
     try {
-        // Determine the correct redirect URL
-        // Use production URL if available, otherwise use current origin
-        const productionUrl = 'https://duy133009.github.io/task-manager-login';
-        const redirectUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? `${window.location.origin}/index.html`
-            : `${productionUrl}/index.html`;
+        // Get Supabase URL from config
+        const supabaseUrl = SUPABASE_CONFIG.url;
+        const edgeFunctionUrl = `${supabaseUrl}/functions/v1/reset-password`;
         
-        console.log('Sending password reset email to:', email);
-        console.log('Redirect URL:', redirectUrl);
+        console.log('Calling Edge Function to reset password for:', email);
         
-        // Send password reset email using Supabase Auth
-        const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: redirectUrl
+        // Call Edge Function to reset password directly
+        const response = await fetch(edgeFunctionUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+            },
+            body: JSON.stringify({
+                email: email,
+                newPassword: newPassword
+            })
         });
         
-        if (error) {
-            if (error.message.includes('email')) {
+        const result = await response.json();
+        
+        if (!response.ok) {
+            if (result.error && result.error.includes('not found')) {
                 throw new Error('Email không tồn tại trong hệ thống');
             }
-            throw error;
+            throw new Error(result.error || 'Đã xảy ra lỗi khi đặt lại mật khẩu');
         }
         
-        // Show success message
-        showSuccess('Đã gửi email đặt lại mật khẩu! Vui lòng kiểm tra hộp thư của bạn.');
+        // Success
+        showSuccess('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.');
         
         // Close modal after 2 seconds
         setTimeout(() => {
@@ -466,7 +515,8 @@ document.getElementById('forgotPasswordForm').addEventListener('submit', async (
         }, 2000);
         
     } catch (error) {
-        errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi gửi email';
+        console.error('Password reset error:', error);
+        errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi đặt lại mật khẩu';
         errorDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
@@ -658,4 +708,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             // Don't close reset modal on outside click (user must complete reset)
         }
     });
+    
+    // Setup toggle buttons for login/register switching
+    setupToggleButtons();
+    setupPasswordToggles();
 });
