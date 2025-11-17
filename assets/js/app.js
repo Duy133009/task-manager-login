@@ -725,10 +725,14 @@ document.getElementById('resetPasswordForm').addEventListener('submit', async (e
 
 // Check if user is coming from password reset link
 window.addEventListener('DOMContentLoaded', async () => {
-    // Clean URL - remove any sensitive query parameters (username, password, etc.)
-    const urlParams = new URLSearchParams(window.location.search);
-    const sensitiveParams = ['username', 'password', 'email', 'token'];
-    let urlChanged = false;
+    console.log('=== DOMContentLoaded START ===');
+    
+    try {
+        // Clean URL - remove any sensitive query parameters (username, password, etc.)
+        console.log('1. Cleaning URL...');
+        const urlParams = new URLSearchParams(window.location.search);
+        const sensitiveParams = ['username', 'password', 'email', 'token'];
+        let urlChanged = false;
     
     sensitiveParams.forEach(param => {
         if (urlParams.has(param)) {
@@ -737,16 +741,18 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Update URL if sensitive params were removed
-    if (urlChanged) {
-        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-        window.history.replaceState({}, document.title, newUrl);
-    }
+        // Update URL if sensitive params were removed
+        if (urlChanged) {
+            const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, document.title, newUrl);
+        }
+        console.log('2. URL cleaned');
     
-    // Check URL parameters for password reset
-    const isReset = urlParams.get('reset');
-    const accessToken = urlParams.get('access_token');
-    const type = urlParams.get('type');
+        // Check URL parameters for password reset
+        console.log('3. Checking password reset params...');
+        const isReset = urlParams.get('reset');
+        const accessToken = urlParams.get('access_token');
+        const type = urlParams.get('type');
     
     // If coming from password reset email link
     if (type === 'recovery' && accessToken) {
@@ -791,14 +797,16 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Check Supabase session (with timeout to prevent hanging)
-    try {
+        // Check Supabase session (with timeout to prevent hanging)
+        console.log('4. Checking Supabase session...');
+        
         const sessionPromise = supabaseClient.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Session check timeout')), 5000)
         );
         
         const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        console.log('5. Session checked:', session ? 'exists' : 'none');
         
         if (session && !error && !isReset && !type) {
             console.log('User already logged in, redirecting to dashboard...');
@@ -810,47 +818,60 @@ window.addEventListener('DOMContentLoaded', async () => {
             localStorage.removeItem('user_id');
             localStorage.removeItem('user_data');
         }
-    } catch (sessionError) {
-        console.error('Error checking session:', sessionError);
-        // If session check fails, just show login form
-        console.log('Session check failed, showing login form');
-        localStorage.removeItem('user_id');
-        localStorage.removeItem('user_data');
-    }
+        } catch (sessionError) {
+            console.error('Error checking session:', sessionError);
+            // If session check fails, just show login form
+            console.log('6. Session check failed, showing login form');
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('user_data');
+        }
     
-    // Close modal when clicking outside
-    window.addEventListener('click', (e) => {
-        const forgotModal = document.getElementById('forgotPasswordModal');
-        const resetModal = document.getElementById('resetPasswordModal');
+        // Close modal when clicking outside
+        console.log('7. Setting up modal close handlers...');
+        window.addEventListener('click', (e) => {
+            const forgotModal = document.getElementById('forgotPasswordModal');
+            const resetModal = document.getElementById('resetPasswordModal');
         
-        if (e.target === forgotModal) {
-            closeForgotPasswordModal();
-        }
-        if (e.target === resetModal) {
-            // Don't close reset modal on outside click (user must complete reset)
-        }
-    });
+            if (e.target === forgotModal) {
+                closeForgotPasswordModal();
+            }
+            if (e.target === resetModal) {
+                // Don't close reset modal on outside click (user must complete reset)
+            }
+        });
 
-    // Setup toggle buttons for login/register switching
-    setupToggleButtons();
-    setupPasswordToggles();
+        // Setup toggle buttons for login/register switching
+        console.log('8. Setting up toggle buttons...');
+        setupToggleButtons();
+        
+        console.log('9. Setting up password toggles...');
+        setupPasswordToggles();
     
-    // Setup register form handler
-    setupRegisterForm();
+        // Setup register form handler
+        console.log('10. Setting up register form...');
+        setupRegisterForm();
     
-    console.log('All form handlers initialized');
+        console.log('11. All form handlers initialized');
     
-    // Hide loading indicator and show page
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const authContainer = document.getElementById('authContainer');
+    } catch (error) {
+        console.error('=== CRITICAL ERROR in DOMContentLoaded ===');
+        console.error(error);
+        console.error('Stack:', error.stack);
+        alert('Error loading page: ' + error.message);
+    } finally {
+        // ALWAYS hide loading indicator and show page
+        console.log('12. Hiding loading indicator...');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const authContainer = document.getElementById('authContainer');
     
-    if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+    
+        if (authContainer) {
+            authContainer.style.opacity = '1';
+        }
+    
+        console.log('=== Page ready! ===');
     }
-    
-    if (authContainer) {
-        authContainer.style.opacity = '1';
-    }
-    
-    console.log('Page ready!');
 });
