@@ -1747,20 +1747,15 @@ async function logout() {
         
         console.log('Logout successful, redirecting to login...');
 
-        // Show success message before redirect
-        showSuccessMessage('Đăng xuất thành công!');
-
-        // Redirect to login page after short delay
-        setTimeout(() => {
-            window.location.replace('index.html');
-        }, 1000);
+        // Redirect immediately without blocking alert
+        window.location.replace('index.html');
     } catch (error) {
         console.error('Logout error:', error);
         // Force redirect even if error
         window.location.replace('index.html');
     }
 
-// Simple alert for now to avoid syntax issues
+// Success message function (currently not used for logout)
 function showSuccessMessage(message) {
-    alert(message);
+    console.log('Success:', message);
 }
