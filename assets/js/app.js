@@ -10,8 +10,19 @@ const supabaseAnonKey = window.SUPABASE_ANON_KEY ||
                         (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
                         'YOUR_SUPABASE_ANON_KEY_HERE';
 
+// Validate config
+if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+    console.error('⚠️ Supabase configuration is missing! Please check config.js');
+    console.error('URL:', supabaseUrl);
+    console.error('Key:', supabaseAnonKey ? 'Set' : 'Missing');
+}
+
 const { createClient } = supabase;
 const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+console.log('Supabase client initialized');
+console.log('URL:', supabaseUrl);
+console.log('Page loaded, waiting for DOM...');
 
 // Container toggle animation - Wait for DOM to load
 let container, registerBtn, loginBtn;
@@ -780,17 +791,32 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // Check Supabase session
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    
-    if (session && !error && !isReset) {
-                    // User is logged in, redirect to dashboard
-                    window.location.href = 'dashboard.html';
-                } else {
-        // Clear any old localStorage data
-                    localStorage.removeItem('user_id');
-                    localStorage.removeItem('user_data');
-                }
+    // Check Supabase session (with timeout to prevent hanging)
+    try {
+        const sessionPromise = supabaseClient.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Session check timeout')), 5000)
+        );
+        
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        
+        if (session && !error && !isReset && !type) {
+            console.log('User already logged in, redirecting to dashboard...');
+            // User is logged in, redirect to dashboard
+            window.location.href = 'dashboard.html';
+        } else {
+            console.log('No active session, showing login form');
+            // Clear any old localStorage data
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('user_data');
+        }
+    } catch (sessionError) {
+        console.error('Error checking session:', sessionError);
+        // If session check fails, just show login form
+        console.log('Session check failed, showing login form');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
+    }
     
     // Close modal when clicking outside
     window.addEventListener('click', (e) => {
