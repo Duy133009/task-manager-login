@@ -420,27 +420,9 @@ function setupRegisterForm() {
                 return;
             }
         
-            // Create user profile in users table
-            // Note: This should ideally be done via database trigger or Edge Function
-            // For now, we'll insert after auth signup
-            if (authData.user) {
-                const { error: profileError } = await supabaseClient
-            .from('users')
-            .insert({
-                        id: authData.user.id, // Use auth user ID
-                username: username,
-                email: email,
-                        full_name: fullName,
-                        email_verified: authData.user.email_confirmed_at !== null
-                    });
-        
-                if (profileError) {
-                    console.error('Error creating user profile:', profileError);
-                    // Don't throw - auth user is already created
-                } else {
-                    console.log('User profile created successfully');
-                }
-            }
+            // User profile is automatically created by database trigger (handle_new_user)
+            // No need to manually insert into users table
+            console.log('User profile will be created by trigger automatically');
         
             // If we have a session, user is logged in - redirect to dashboard immediately
             if (authData.session) {
