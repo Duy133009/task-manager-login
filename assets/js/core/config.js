@@ -77,3 +77,6 @@ if (window.location.hostname === 'localhost') {
     Config.api.baseUrl = '/api';
     Config.features.emailNotifications = false;
 }
+
+// Expose Config globally for use in other scripts
+window.Config = Config;
