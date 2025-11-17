@@ -129,7 +129,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 .single();
             
             if (lookupError || !userData) {
-                errorDiv.textContent = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                errorDiv.textContent = 'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -156,21 +156,26 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         if (authError) {
             console.error('Login error:', authError);
             
-            // Handle different error types
-            let errorMessage = 'Đã xảy ra lỗi khi đăng nhập';
+            // Handle different error types with clear, user-friendly messages
+            let errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
             
             if (authError.message.includes('Invalid login credentials') || 
                 authError.message.includes('Invalid credentials') ||
-                authError.message.includes('Email rate limit exceeded')) {
-                errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                authError.message.includes('Email rate limit exceeded') ||
+                authError.message.includes('incorrect')) {
+                errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.';
             } else if (authError.message.includes('Email not confirmed')) {
                 errorMessage = 'Vui lòng xác thực email trước khi đăng nhập';
             } else if (authError.message.includes('Too many requests')) {
-                errorMessage = 'Quá nhiều lần thử. Vui lòng thử lại sau vài phút';
-            } else if (authError.message.includes('User not found')) {
-                errorMessage = 'Tài khoản không tồn tại';
+                errorMessage = 'Quá nhiều lần thử đăng nhập. Vui lòng đợi vài phút rồi thử lại.';
+            } else if (authError.message.includes('User not found') || 
+                       authError.message.includes('not found')) {
+                errorMessage = 'Tài khoản không tồn tại. Vui lòng kiểm tra lại tên đăng nhập hoặc email.';
+            } else if (authError.message.includes('password')) {
+                errorMessage = 'Mật khẩu không đúng. Vui lòng kiểm tra lại.';
             } else {
-                errorMessage = authError.message || 'Đã xảy ra lỗi khi đăng nhập';
+                // For any other error, show generic but friendly message
+                errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng kiểm tra lại.';
             }
             
             errorDiv.textContent = errorMessage;
@@ -286,33 +291,67 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 // Register form handler - Using Supabase Auth
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const form = e.target;
-    const btn = form.querySelector('.btn-primary');
-    const btnText = btn.querySelector('.btn-text');
-    const btnLoader = btn.querySelector('.btn-loader');
-    const errorDiv = document.getElementById('registerError');
-    
-    const fullName = document.getElementById('registerFullName').value.trim();
-    const username = document.getElementById('registerUsername').value.trim();
-    const email = document.getElementById('registerEmail').value.trim();
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    
-    // Validation
-    if (password !== confirmPassword) {
-        errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    
-    if (password.length < 6) {
-        errorDiv.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
-        errorDiv.style.display = 'block';
-        return;
-    }
+const registerForm = document.getElementById('registerForm');
+if (!registerForm) {
+    console.error('Register form not found!');
+} else {
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const form = e.target;
+        const btn = form.querySelector('.btn-primary');
+        const btnText = btn.querySelector('.btn-text');
+        const btnLoader = btn.querySelector('.btn-loader');
+        const errorDiv = document.getElementById('registerError');
+        
+        if (!btn || !errorDiv) {
+            console.error('Register form elements not found');
+            return;
+        }
+        
+        const fullName = document.getElementById('registerFullName')?.value.trim() || '';
+        const username = document.getElementById('registerUsername')?.value.trim() || '';
+        const email = document.getElementById('registerEmail')?.value.trim() || '';
+        const password = document.getElementById('registerPassword')?.value || '';
+        const confirmPassword = document.getElementById('confirmPassword')?.value || '';
+        
+        // Validation
+        if (!fullName) {
+            errorDiv.textContent = 'Vui lòng nhập họ và tên';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (!username) {
+            errorDiv.textContent = 'Vui lòng nhập tên đăng nhập';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (!email) {
+            errorDiv.textContent = 'Vui lòng nhập email';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (!password) {
+            errorDiv.textContent = 'Vui lòng nhập mật khẩu';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            errorDiv.textContent = 'Mật khẩu xác nhận không khớp';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (password.length < 6) {
+            errorDiv.textContent = 'Mật khẩu phải có ít nhất 6 ký tự';
+            errorDiv.style.display = 'block';
+            return;
+        }
     
     // Show loading
     btn.disabled = true;
@@ -411,14 +450,24 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         }, 1500);
         
     } catch (error) {
-        errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi đăng ký';
+        console.error('Register error:', error);
+        let errorMessage = 'Đã xảy ra lỗi khi đăng ký';
+        
+        if (error.message) {
+            errorMessage = error.message;
+        } else if (error.error_description) {
+            errorMessage = error.error_description;
+        }
+        
+        errorDiv.textContent = errorMessage;
         errorDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
         btnText.style.display = 'inline-block';
         btnLoader.style.display = 'none';
     }
-});
+    });
+}
 
 // Helper functions
 function showSuccess(message) {
