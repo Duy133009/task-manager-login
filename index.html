@@ -141,6 +141,38 @@
       // Supabase credentials are now loaded from config.js for security
     </script>
 
-    <script src="assets/js/app.js"></script>
+    <!-- <script src="assets/js/app.js"></script> -->
+    <script>
+        // Simple toggle test for production
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up toggle...');
+
+            const container = document.querySelector('.container');
+            const registerBtns = document.querySelectorAll('.register-btn');
+            const loginBtns = document.querySelectorAll('.login-btn');
+
+            console.log('Container found:', !!container);
+            console.log('Register buttons found:', registerBtns.length);
+            console.log('Login buttons found:', loginBtns.length);
+
+            registerBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Register clicked - adding active');
+                    container.classList.add('active');
+                });
+            });
+
+            loginBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    console.log('Login clicked - removing active');
+                    container.classList.remove('active');
+                });
+            });
+
+            console.log('Toggle setup complete');
+        });
+    </script>
 </body>
 </html>
