@@ -13,28 +13,47 @@ const supabaseAnonKey = window.SUPABASE_ANON_KEY ||
 const { createClient } = supabase;
 const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
-// Container toggle animation
-const container = document.querySelector('.container');
-const registerBtn = document.querySelector('.register-btn');
-const loginBtn = document.querySelector('.login-btn');
+// Container toggle animation - Wait for DOM to load
+let container, registerBtn, loginBtn;
 
-registerBtn.addEventListener('click', () => {
-    container.classList.add('active');
-    // Clear errors
-    document.querySelectorAll('.error-message').forEach(e => {
-        e.style.display = 'none';
-        e.textContent = '';
+function setupToggleButtons() {
+    container = document.querySelector('.container');
+    registerBtn = document.querySelector('.register-btn');
+    loginBtn = document.querySelector('.login-btn');
+    
+    if (!container || !registerBtn || !loginBtn) {
+        console.error('Toggle elements not found');
+        return;
+    }
+    
+    registerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        container.classList.add('active');
+        // Clear errors
+        document.querySelectorAll('.error-message').forEach(e => {
+            e.style.display = 'none';
+            e.textContent = '';
+        });
+        // Clear form inputs
+        document.getElementById('loginForm')?.reset();
     });
-});
-
-loginBtn.addEventListener('click', () => {
-    container.classList.remove('active');
-    // Clear errors
-    document.querySelectorAll('.error-message').forEach(e => {
-        e.style.display = 'none';
-        e.textContent = '';
+    
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        container.classList.remove('active');
+        // Clear errors
+        document.querySelectorAll('.error-message').forEach(e => {
+            e.style.display = 'none';
+            e.textContent = '';
+        });
+        // Clear form inputs
+        document.getElementById('registerForm')?.reset();
     });
-});
+    
+    console.log('Toggle buttons setup complete');
+}
 
 // Toggle password visibility with boxicons
 function setupPasswordToggles() {
