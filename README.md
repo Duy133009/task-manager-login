@@ -1,173 +1,227 @@
 # Task Manager - Login System
 
-A modern task management system with authentication powered by Supabase.
+Hệ thống quản lý task với đăng nhập/đăng ký sử dụng Supabase Auth.
 
-## 📁 Project Structure
+## 📁 Cấu Trúc Project
 
 ```
 task-manager-login/
-├── index.html              # Login/Registration page
-├── dashboard.html          # Task management dashboard
+├── index.html              # Trang đăng nhập/đăng ký
+├── dashboard.html          # Trang dashboard quản lý task
 │
-├── assets/                 # Static resources
+├── assets/                 # Tài nguyên tĩnh
 │   ├── css/
-│   │   ├── styles.css      # Styles for login page
-│   │   └── dashboard.css   # Styles for dashboard page
+│   │   ├── styles.css      # Styles cho trang login
+│   │   └── dashboard.css  # Styles cho trang dashboard
 │   └── js/
-│       ├── app.js          # Login/Registration logic
-│       ├── config.js       # Supabase configuration
-│       └── dashboard.js    # Dashboard logic
+│       ├── app.js          # Logic đăng nhập/đăng ký (Supabase Auth)
+│       ├── config.js       # Cấu hình Supabase (KHÔNG commit!)
+│       ├── config.example.js # File mẫu cấu hình
+│       └── dashboard.js    # Logic dashboard
 │
-├── config/                 # Configuration files
-│   ├── firebase-config.js  # Firebase configuration (if needed)
-│   └── firebase-init.js    # Firebase initialization (if needed)
+├── config/                 # File cấu hình
+│   ├── firebase-config.js  # Cấu hình Firebase (nếu cần)
+│   └── firebase-init.js    # Khởi tạo Firebase (nếu cần)
 │
-├── docs/                   # Documentation
-│   ├── README.md           # Main documentation
-│   ├── DEPLOY.md           # Deployment guide
-│   └── ...                 # Other documentation files
+├── docs/                   # Tài liệu
+│   ├── README.md           # Tài liệu chính
+│   ├── DEPLOY.md           # Hướng dẫn deploy
+│   └── ...                 # Các tài liệu khác
 │
-├── scripts/                # Utility scripts
-│   └── push-to-github.ps1  # Script to push code to GitHub
+├── scripts/                # Scripts tiện ích
+│   └── push-to-github.ps1  # Script push code lên GitHub
 │
-├── templates/              # Reference templates
+├── templates/              # Templates tham khảo
 │   └── SignUp-LogIn-Form V2.0/
 │
 ├── .gitignore              # Git ignore rules
-├── netlify.toml            # Netlify configuration
-└── vercel.json             # Vercel configuration
+├── netlify.toml            # Cấu hình Netlify
+└── vercel.json             # Cấu hình Vercel
 ```
 
-## 🚀 Features
+## 🚀 Tính Năng
 
-- ✅ User authentication (Login/Registration) with Supabase
-- ✅ Modern UI with smooth toggle animations
-- ✅ Session management and secure authentication
-- ✅ Task management dashboard
-- ✅ Fully responsive design
+- ✅ Đăng nhập/Đăng ký với Supabase Auth (bảo mật)
+- ✅ UI hiện đại với animation toggle
+- ✅ Quản lý session bằng Supabase Auth
+- ✅ Dashboard quản lý task với permissions
+- ✅ Responsive design
 - ✅ Password visibility toggle
-- ✅ Remember me functionality
 - ✅ Form validation
 
-## 🛠️ Tech Stack
+## 🔒 Bảo Mật
 
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: Supabase (PostgreSQL + Authentication)
-- **Icons**: Boxicons
-- **Deployment**: GitHub Pages, Netlify, Vercel
+### ⚠️ QUAN TRỌNG: Cấu hình Supabase
 
-## 📝 Configuration
+**KHÔNG commit file `assets/js/config.js` lên Git!** File này chứa thông tin nhạy cảm.
 
-Supabase configuration is located in `assets/js/config.js`.
+1. **Copy file mẫu:**
+   ```bash
+   cp assets/js/config.example.js assets/js/config.js
+   ```
 
-### Setup Supabase
+2. **Cập nhật `assets/js/config.js` với thông tin Supabase của bạn:**
+   ```javascript
+   const SUPABASE_CONFIG = {
+     url: 'https://your-project.supabase.co',
+     anonKey: 'your-anon-key-here'
+   };
+   ```
 
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Get your project URL and anon key
-3. Update `assets/js/config.js` with your credentials:
+3. **Hoặc sử dụng biến môi trường (khuyến nghị cho production):**
+   - Set `window.SUPABASE_URL` và `window.SUPABASE_ANON_KEY` trước khi load config.js
 
-```javascript
-const supabaseUrl = 'YOUR_SUPABASE_URL';
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-```
+### Cấu hình Supabase Auth
 
-### Database Schema
+1. **Bật Supabase Auth trong Supabase Dashboard:**
+   - Vào Authentication → Settings
+   - Bật Email/Password provider
+   - Cấu hình email templates (tùy chọn)
 
-The application requires the following tables in Supabase:
+2. **Cấu hình RLS (Row Level Security) Policies:**
 
-- `users` - User accounts
-- `user_sessions` - Active user sessions
-- `tasks` - Task items
-- `notification_settings` - User notification preferences
+   **Bảng `users`:**
+   ```sql
+   -- Users can read their own data
+   CREATE POLICY "Users can read own data" ON users
+     FOR SELECT USING (auth.uid() = id);
+   
+   -- Users can update their own data
+   CREATE POLICY "Users can update own data" ON users
+     FOR UPDATE USING (auth.uid() = id);
+   ```
 
-## 🔧 Development
+   **Bảng `tasks`:**
+   ```sql
+   -- Users can read tasks they own, are assigned to, or subscribed to
+   CREATE POLICY "Users can read accessible tasks" ON tasks
+     FOR SELECT USING (
+       user_id = auth.uid() OR 
+       assigned_to = auth.uid() OR
+       id IN (SELECT task_id FROM task_subscriptions WHERE user_id = auth.uid())
+     );
+   
+   -- Only owners can insert tasks
+   CREATE POLICY "Users can insert own tasks" ON tasks
+     FOR INSERT WITH CHECK (user_id = auth.uid());
+   
+   -- Only owners can update tasks
+   CREATE POLICY "Users can update own tasks" ON tasks
+     FOR UPDATE USING (user_id = auth.uid());
+   
+   -- Only owners can delete tasks
+   CREATE POLICY "Users can delete own tasks" ON tasks
+     FOR DELETE USING (user_id = auth.uid());
+   ```
 
-### Prerequisites
+   **Bảng `user_sessions` (nếu còn dùng):**
+   ```sql
+   -- Users can only access their own sessions
+   CREATE POLICY "Users can access own sessions" ON user_sessions
+     FOR ALL USING (user_id = auth.uid());
+   ```
 
-- A Supabase account and project
-- A modern web browser
-- (Optional) A local web server
+3. **Tạo Database Trigger (tùy chọn):**
+   
+   Tự động tạo user profile khi sign up:
+   ```sql
+   CREATE OR REPLACE FUNCTION public.handle_new_user()
+   RETURNS trigger AS $$
+   BEGIN
+     INSERT INTO public.users (id, email, username, full_name)
+     VALUES (
+       NEW.id,
+       NEW.email,
+       COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
+       COALESCE(NEW.raw_user_meta_data->>'full_name', '')
+     );
+     RETURN NEW;
+   END;
+   $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-### Getting Started
+   CREATE TRIGGER on_auth_user_created
+     AFTER INSERT ON auth.users
+     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+   ```
 
-1. Clone the repository:
+## 📝 Cấu Hình
+
+### Local Development
+
+1. Clone repository:
    ```bash
    git clone https://github.com/Duy133009/task-manager-login.git
    cd task-manager-login
    ```
 
-2. Configure Supabase:
-   - Update `assets/js/config.js` with your Supabase credentials
-   - Set up the required database tables
+2. Copy và cấu hình:
+   ```bash
+   cp assets/js/config.example.js assets/js/config.js
+   # Chỉnh sửa assets/js/config.js với Supabase credentials của bạn
+   ```
 
-3. Open in browser:
-   - Simply open `index.html` in your browser, or
-   - Use a local server:
-     ```bash
-     # Using Python
-     python -m http.server 8000
-     
-     # Using Node.js
-     npx serve
-     ```
+3. Mở `index.html` trong browser hoặc dùng local server:
+   ```bash
+   # Python
+   python -m http.server 8000
+   
+   # Node.js
+   npx serve
+   ```
 
-4. Access the application:
-   - Login page: `http://localhost:8000/index.html`
-   - Dashboard: `http://localhost:8000/dashboard.html`
+4. Truy cập: `http://localhost:8000/index.html`
 
-## 📚 Documentation
+### Production Deployment
 
-Additional documentation is available in the `docs/` directory:
+1. **GitHub Pages:**
+   - Push code lên GitHub
+   - Settings → Pages → Select branch `main`
+   - Site sẽ có tại: `https://YOUR_USERNAME.github.io/task-manager-login/`
 
-- `docs/README.md` - Detailed documentation
-- `docs/DEPLOY.md` - Deployment guide
-- `docs/HUONG_DAN_DEPLOY.md` - Vietnamese deployment guide
-- `docs/DEPLOY_QUICK.md` - Quick deployment guide
+2. **Netlify/Vercel:**
+   - Connect repository
+   - Set environment variables:
+     - `SUPABASE_URL`
+     - `SUPABASE_ANON_KEY`
+   - Deploy
 
-## 🚀 Deployment
+## 🔧 Development
 
-This project can be deployed to:
+### Authentication Flow
 
-- **GitHub Pages**: Automatically via GitHub Actions
-- **Netlify**: Using `netlify.toml` configuration
-- **Vercel**: Using `vercel.json` configuration
+- **Login:** Sử dụng `supabase.auth.signInWithPassword()`
+- **Register:** Sử dụng `supabase.auth.signUp()`
+- **Session:** Quản lý tự động bởi Supabase Auth
+- **Logout:** Sử dụng `supabase.auth.signOut()`
 
-### GitHub Pages
+### Permissions
 
-1. Push code to GitHub
-2. Go to repository Settings → Pages
-3. Select source branch (usually `main`)
-4. Your site will be available at `https://YOUR_USERNAME.github.io/task-manager-login/`
+- **Tasks:**
+  - Owner: Có thể edit, delete, complete
+  - Assigned: Có thể complete
+  - Subscribed: Chỉ xem
 
-## 🔒 Security
+## 📚 Tài Liệu
 
-- Passwords are hashed using SHA-256 before storage
-- Session tokens are securely generated and stored
-- All API keys should be kept in environment variables (not committed to Git)
-- The `.gitignore` file excludes sensitive files
+Xem thêm trong thư mục `docs/`:
+- `docs/README.md` - Tài liệu chi tiết
+- `docs/DEPLOY.md` - Hướng dẫn deploy
+- `docs/HUONG_DAN_DEPLOY.md` - Hướng dẫn deploy tiếng Việt
 
-## 📱 Browser Support
+## ⚠️ Lưu Ý Bảo Mật
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. **KHÔNG commit `assets/js/config.js`** - File này trong `.gitignore`
+2. **KHÔNG commit `google-credentials.txt`** - File này trong `.gitignore`
+3. **Sử dụng biến môi trường** cho production
+4. **Cấu hình RLS policies** trong Supabase
+5. **Không lưu sensitive data** trong localStorage
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT
 
 ## 👤 Author
 
 **DuyTrinh**
 
 - GitHub: [@Duy133009](https://github.com/Duy133009)
-
-## 🙏 Acknowledgments
-
-- [Supabase](https://supabase.com) for the backend infrastructure
-- [Boxicons](https://boxicons.com) for the icon library

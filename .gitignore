@@ -10,8 +10,12 @@ yarn.lock
 
 # Credentials and secrets
 google-credentials.txt
+assets/js/config.js
+config.js
 *.key
 *.pem
+.env
+.env.local
 
 # IDE
 .vscode/

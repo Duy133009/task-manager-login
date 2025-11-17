@@ -1,6 +1,14 @@
-// Initialize Supabase
-const supabaseUrl = 'https://hiojtrjfatfxbffrihnx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpb2p0cmpmYXRmeGJmZnJpaG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk1NjEsImV4cCI6MjA3ODE0NTU2MX0.HuCpZ2HaNrPXrh6mGR9aH6VGQXEQyDFHzP3_ep9f8Eg';
+// Load config first
+// Make sure config.js is loaded before this file in HTML
+
+// Initialize Supabase from config
+const supabaseUrl = window.SUPABASE_URL || 
+                    (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.url : null) ||
+                    'YOUR_SUPABASE_URL_HERE';
+
+const supabaseAnonKey = window.SUPABASE_ANON_KEY || 
+                        (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
+                        'YOUR_SUPABASE_ANON_KEY_HERE';
 
 const { createClient } = supabase;
 const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -47,16 +55,7 @@ document.querySelectorAll('.toggle-password-icon').forEach(btn => {
     });
 });
 
-// Hash password function
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Login form handler
+// Login form handler - Using Supabase Auth
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -66,7 +65,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const btnLoader = btn.querySelector('.btn-loader');
     const errorDiv = document.getElementById('loginError');
     
-    const username = document.getElementById('loginUsername').value.trim();
+    const usernameOrEmail = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
     const rememberMe = document.getElementById('rememberMe').checked;
     
@@ -77,65 +76,73 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     errorDiv.style.display = 'none';
     
     try {
-        // Hash password
-        const passwordHash = await hashPassword(password);
+        // Determine if input is email or username
+        const isEmail = usernameOrEmail.includes('@');
+        let email = usernameOrEmail;
         
-        // Check if username is email or username
-        const isEmail = username.includes('@');
-        
-        // Query user from database
-        let query = supabaseClient.from('users').select('*');
-        
-        if (isEmail) {
-            query = query.eq('email', username);
-        } else {
-            query = query.eq('username', username);
+        // If username, look up email from users table
+        if (!isEmail) {
+            const { data: userData, error: lookupError } = await supabaseClient
+                .from('users')
+                .select('email')
+                .eq('username', usernameOrEmail)
+                .single();
+            
+            if (lookupError || !userData) {
+                throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+            }
+            email = userData.email;
         }
         
-        const { data: users, error: queryError } = await query;
+        // Sign in using Supabase Auth
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
         
-        if (queryError) throw queryError;
-        
-        if (!users || users.length === 0) {
-            throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+        if (authError) {
+            if (authError.message.includes('Invalid login credentials')) {
+                throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+            }
+            throw authError;
         }
         
-        const user = users[0];
+        // Get user profile from users table
+        const { data: userProfile, error: profileError } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .single();
         
-        // Verify password
-        const storedHash = user.password_hash;
-        if (passwordHash !== storedHash) {
-            throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+        if (profileError) {
+            console.error('Error fetching user profile:', profileError);
         }
         
         // Update last login
-        await supabaseClient
-            .from('users')
-            .update({ last_login: new Date().toISOString() })
-            .eq('id', user.id);
+        if (userProfile) {
+            await supabaseClient
+                .from('users')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', userProfile.id);
+        }
         
-        // Store user session
-        const sessionToken = generateSessionToken();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + (rememberMe ? 30 : 1));
+        // Store session info (Supabase handles session automatically)
+        // Only store non-sensitive user data
+        if (userProfile) {
+            localStorage.setItem('user_id', userProfile.id);
+            localStorage.setItem('user_data', JSON.stringify({
+                id: userProfile.id,
+                username: userProfile.username,
+                email: userProfile.email,
+                full_name: userProfile.full_name
+            }));
+        }
         
-        await supabaseClient.from('user_sessions').insert({
-            user_id: user.id,
-            token: sessionToken,
-            expires_at: expiresAt.toISOString(),
-            ip_address: await getClientIP(),
-            user_agent: navigator.userAgent
-        });
-        
-        // Store in localStorage
-        localStorage.setItem('auth_token', sessionToken);
-        localStorage.setItem('user_id', user.id);
-        localStorage.setItem('user_data', JSON.stringify({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            full_name: user.full_name
-        }));
+        // Set session persistence
+        if (rememberMe) {
+            // Supabase session is already persistent, but we can extend it
+            // Session is managed by Supabase Auth automatically
+        }
         
         // Show success and redirect
         showSuccess('Đăng nhập thành công! Đang chuyển hướng...');
@@ -154,7 +161,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 });
 
-// Register form handler
+// Register form handler - Using Supabase Auth
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -190,49 +197,68 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     errorDiv.style.display = 'none';
     
     try {
-        // Check if username or email already exists
-        const { data: existingUsers, error: checkError } = await supabaseClient
+        // Check if username already exists
+        const { data: existingUsername, error: usernameCheckError } = await supabaseClient
             .from('users')
-            .select('username, email')
-            .or(`username.eq.${username},email.eq.${email}`);
+            .select('username')
+            .eq('username', username)
+            .single();
         
-        if (checkError) throw checkError;
+        if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
+            throw usernameCheckError;
+        }
         
-        if (existingUsers && existingUsers.length > 0) {
-            const existing = existingUsers[0];
-            if (existing.username === username) {
-                throw new Error('Tên đăng nhập đã tồn tại');
+        if (existingUsername) {
+            throw new Error('Tên đăng nhập đã tồn tại');
+        }
+        
+        // Sign up using Supabase Auth
+        const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    full_name: fullName,
+                    username: username
+                }
             }
-            if (existing.email === email) {
+        });
+        
+        if (authError) {
+            if (authError.message.includes('already registered')) {
                 throw new Error('Email đã được sử dụng');
+            }
+            throw authError;
+        }
+        
+        // Create user profile in users table
+        // Note: This should ideally be done via database trigger or Edge Function
+        // For now, we'll insert after auth signup
+        if (authData.user) {
+            const { error: profileError } = await supabaseClient
+                .from('users')
+                .insert({
+                    id: authData.user.id, // Use auth user ID
+                    username: username,
+                    email: email,
+                    full_name: fullName,
+                    email_verified: false
+                });
+            
+            if (profileError) {
+                console.error('Error creating user profile:', profileError);
+                // Don't throw - auth user is already created
             }
         }
         
-        // Hash password
-        const passwordHash = await hashPassword(password);
-        
-        // Insert new user
-        const { data: newUser, error: insertError } = await supabaseClient
-            .from('users')
-            .insert({
-                username: username,
-                email: email,
-                password_hash: passwordHash,
-                full_name: fullName
-            })
-            .select()
-            .single();
-        
-        if (insertError) throw insertError;
-        
         // Show success
-        showSuccess('Đăng ký thành công! Vui lòng đăng nhập.');
+        showSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.');
         
         // Switch to login form after 2 seconds
         setTimeout(() => {
             container.classList.remove('active');
-            // Pre-fill username
-            document.getElementById('loginUsername').value = username;
+            // Pre-fill email
+            document.getElementById('loginUsername').value = email;
         }, 2000);
         
         // Clear form
@@ -249,20 +275,6 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
 });
 
 // Helper functions
-function generateSessionToken() {
-    return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-async function getClientIP() {
-    try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip;
-    } catch {
-        return 'unknown';
-    }
-}
-
 function showSuccess(message) {
     const successDiv = document.getElementById('successMessage');
     successDiv.textContent = message;
@@ -275,26 +287,15 @@ function showSuccess(message) {
 
 // Check if user is already logged in
 window.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-        // Verify token is still valid
-        supabaseClient
-            .from('user_sessions')
-            .select('*')
-            .eq('token', token)
-            .gt('expires_at', new Date().toISOString())
-            .single()
-            .then(({ data, error }) => {
-                if (data && !error) {
-                    // User is logged in, redirect to dashboard
-                    window.location.href = 'dashboard.html';
-                } else {
-                    // Token expired, clear it
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('user_id');
-                    localStorage.removeItem('user_data');
-                }
-            });
+    // Check Supabase session
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    
+    if (session && !error) {
+        // User is logged in, redirect to dashboard
+        window.location.href = 'dashboard.html';
+    } else {
+        // Clear any old localStorage data
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
     }
 });
-

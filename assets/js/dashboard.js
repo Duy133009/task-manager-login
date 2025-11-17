@@ -1,6 +1,12 @@
-// Initialize Supabase
-const supabaseUrl = 'https://hiojtrjfatfxbffrihnx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpb2p0cmpmYXRmeGJmZnJpaG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk1NjEsImV4cCI6MjA3ODE0NTU2MX0.HuCpZ2HaNrPXrh6mGR9aH6VGQXEQyDFHzP3_ep9f8Eg';
+// Initialize Supabase from config
+// Make sure config.js is loaded before this file in HTML
+const supabaseUrl = window.SUPABASE_URL || 
+                    (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.url : null) ||
+                    'YOUR_SUPABASE_URL_HERE';
+
+const supabaseAnonKey = window.SUPABASE_ANON_KEY || 
+                        (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
+                        'YOUR_SUPABASE_ANON_KEY_HERE';
 
 const { createClient } = supabase;
 const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
@@ -40,47 +46,28 @@ function applyDarkMode(isDark) {
     }
 }
 
-// Check authentication and load data
+// Check authentication and load data - Using Supabase Auth
 window.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('user_data');
-
-    if (!token || !userData) {
-        window.location.href = 'index.html';
-        return;
-    }
-
-    // Verify token
-    const { data: session, error } = await supabaseClient
-        .from('user_sessions')
-        .select('*')
-        .eq('token', token)
-        .gt('expires_at', new Date().toISOString())
-        .single();
-
-    if (error || !session) {
-        localStorage.removeItem('auth_token');
+    // Check Supabase session
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    
+    if (!session || sessionError) {
+        // No valid session, redirect to login
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_data');
         window.location.href = 'index.html';
         return;
     }
 
-    // Get user ID
-    const user = JSON.parse(userData);
-    currentUserId = user.id;
+    // Get user ID from Supabase Auth
+    currentUserId = session.user.id;
     console.log('Current user ID:', currentUserId);
-    
-    // Set auth token for Supabase client to enable RLS
-    // Note: We're using custom auth, so we need to set the session manually
-    // For now, RLS policy allows all users to view all tasks (qual: "true")
-    // In production, you should update RLS policy to check auth.uid() = user_id
     
     // Load full user data from database
     const { data: fullUser, error: userError } = await supabaseClient
         .from('users')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', currentUserId)
         .single();
     
     if (userError) {
@@ -90,8 +77,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (fullUser) {
         allUsers[fullUser.id] = fullUser;
         console.log('User data loaded:', fullUser.email, fullUser.full_name);
+        
+        // Store non-sensitive user data
+        localStorage.setItem('user_id', fullUser.id);
+        localStorage.setItem('user_data', JSON.stringify({
+            id: fullUser.id,
+            username: fullUser.username,
+            email: fullUser.email,
+            full_name: fullUser.full_name
+        }));
     } else {
-        console.warn('User data not found for id:', user.id);
+        console.warn('User data not found for id:', currentUserId);
     }
 
     // Setup event listeners
@@ -102,7 +98,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // Load tasks
     await loadTasks();
-    updateNavCounts();
+    await updateNavCounts();
     updateFilterDisplay();
 });
 
@@ -693,17 +689,26 @@ async function loadUserDataForTasks(tasks) {
         if (task.user_id) userIds.add(task.user_id);
     });
 
-    for (const userId of userIds) {
-        if (!allUsers[userId]) {
-            const { data: user } = await supabaseClient
-                .from('users')
-                .select('*')
-                .eq('id', userId)
-                .single();
-            if (user) {
-                allUsers[userId] = user;
-            }
-        }
+    // Filter out users we already have
+    const missingUserIds = Array.from(userIds).filter(id => !allUsers[id]);
+    
+    if (missingUserIds.length === 0) return;
+
+    // Batch query all missing users at once
+    const { data: users, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .in('id', missingUserIds);
+    
+    if (error) {
+        console.error('Error loading user data:', error);
+        return;
+    }
+    
+    if (users) {
+        users.forEach(user => {
+            allUsers[user.id] = user;
+        });
     }
 }
 
@@ -815,18 +820,20 @@ function createTaskRow(task, creator) {
         <div class="task-card priority-${priorityClass} ${statusClass} ${completedClass}" data-task-id="${task.id}">
             <div class="task-card-header">
                 <div class="task-card-main">
-                    <input type="checkbox" class="task-card-checkbox" ${task.status === 'completed' ? 'checked' : ''} onchange="handleTaskCheckboxChange(${task.id}, this.checked)">
-                    <div class="task-card-title" onclick="openEditModal(${task.id})">
+                    <input type="checkbox" class="task-card-checkbox" ${task.status === 'completed' ? 'checked' : ''} onchange="handleTaskCheckboxChange('${task.id}', this.checked)">
+                    <div class="task-card-title" onclick="openEditModal('${task.id}')">
                         ${escapeHtml(task.title)}
                     </div>
                 </div>
                 <div class="task-card-actions">
-                    <button class="task-card-action-btn" onclick="openEditModal(${task.id})" title="Edit">
+                    ${task.user_id === currentUserId ? `
+                    <button class="task-card-action-btn" onclick="openEditModal('${task.id}')" title="Edit">
                         ✏️
                     </button>
-                    <button class="task-card-action-btn" onclick="deleteTask(${task.id})" title="Delete">
+                    <button class="task-card-action-btn" onclick="deleteTask('${task.id}')" title="Delete">
                         🗑️
                     </button>
+                    ` : ''}
                 </div>
             </div>
             ${task.description ? `<div class="task-card-description" style="color: var(--gray-600); font-size: 14px; margin-bottom: 12px; line-height: 1.5;">${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</div>` : ''}
@@ -1210,6 +1217,22 @@ async function completeTask(taskId) {
     try {
         console.log('Completing task:', taskId);
         
+        // Check if user is owner or assigned to this task
+        const { data: task, error: fetchError } = await supabaseClient
+            .from('tasks')
+            .select('user_id, assigned_to')
+            .eq('id', taskId)
+            .single();
+        
+        if (fetchError || !task) {
+            throw new Error('Task not found');
+        }
+        
+        // Only owner or assigned user can complete
+        if (task.user_id !== currentUserId && task.assigned_to !== currentUserId) {
+            throw new Error('Bạn không có quyền hoàn thành task này');
+        }
+        
         // Update task status to completed and set completed_at timestamp
         const { error } = await supabaseClient
             .from('tasks')
@@ -1218,8 +1241,7 @@ async function completeTask(taskId) {
                 completed_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             })
-            .eq('id', taskId)
-            .eq('user_id', currentUserId);
+            .eq('id', taskId);
 
         if (error) {
             console.error('Supabase error:', error);
@@ -1248,6 +1270,22 @@ async function uncompleteTask(taskId) {
     try {
         console.log('Uncompleting task:', taskId);
         
+        // Check if user is owner or assigned to this task
+        const { data: task, error: fetchError } = await supabaseClient
+            .from('tasks')
+            .select('user_id, assigned_to')
+            .eq('id', taskId)
+            .single();
+        
+        if (fetchError || !task) {
+            throw new Error('Task not found');
+        }
+        
+        // Only owner or assigned user can uncomplete
+        if (task.user_id !== currentUserId && task.assigned_to !== currentUserId) {
+            throw new Error('Bạn không có quyền thay đổi trạng thái task này');
+        }
+        
         const { error } = await supabaseClient
             .from('tasks')
             .update({ 
@@ -1255,8 +1293,7 @@ async function uncompleteTask(taskId) {
                 completed_at: null,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', taskId)
-            .eq('user_id', currentUserId);
+            .eq('id', taskId);
 
         if (error) throw error;
 
@@ -1270,13 +1307,29 @@ async function uncompleteTask(taskId) {
     }
 }
 
-// Delete task
+// Delete task - Only owner can delete
 async function deleteTask(taskId) {
     if (!confirm('Bạn có chắc muốn xóa task này?')) {
         return;
     }
 
     try {
+        // Check if user is owner
+        const { data: task, error: fetchError } = await supabaseClient
+            .from('tasks')
+            .select('user_id')
+            .eq('id', taskId)
+            .single();
+        
+        if (fetchError || !task) {
+            throw new Error('Task not found');
+        }
+        
+        // Only owner can delete
+        if (task.user_id !== currentUserId) {
+            throw new Error('Chỉ người tạo task mới có quyền xóa');
+        }
+        
         const { error } = await supabaseClient
             .from('tasks')
             .delete()
@@ -1286,24 +1339,32 @@ async function deleteTask(taskId) {
         if (error) throw error;
 
         await loadTasks();
-        updateStats();
+        await updateNavCounts();
     } catch (error) {
         console.error('Error deleting task:', error);
         alert('Có lỗi xảy ra khi xóa task');
     }
 }
 
-// Open edit modal
+// Open edit modal - Only owner can edit
 async function openEditModal(taskId) {
     try {
+        // Check if user is owner
         const { data: task, error } = await supabaseClient
             .from('tasks')
             .select('*')
             .eq('id', taskId)
-            .eq('user_id', currentUserId)
             .single();
-
-        if (error) throw error;
+        
+        if (error || !task) {
+            throw new Error('Task not found');
+        }
+        
+        // Only owner can edit
+        if (task.user_id !== currentUserId) {
+            alert('Chỉ người tạo task mới có quyền chỉnh sửa');
+            return;
+        }
 
         document.getElementById('editTaskId').value = task.id;
         document.getElementById('editTaskTitle').value = task.title;
@@ -1357,6 +1418,17 @@ async function handleEditTask(e) {
             due_date: dueDate || null
         };
 
+        // Verify ownership before update
+        const { data: task, error: verifyError } = await supabaseClient
+            .from('tasks')
+            .select('user_id')
+            .eq('id', taskId)
+            .single();
+        
+        if (verifyError || !task || task.user_id !== currentUserId) {
+            throw new Error('Bạn không có quyền chỉnh sửa task này');
+        }
+        
         const { error } = await supabaseClient
             .from('tasks')
             .update(updateData)
@@ -1367,7 +1439,7 @@ async function handleEditTask(e) {
 
         closeModal();
         await loadTasks();
-        updateStats();
+        await updateNavCounts();
     } catch (error) {
         console.error('Error updating task:', error);
         alert('Có lỗi xảy ra khi cập nhật task');

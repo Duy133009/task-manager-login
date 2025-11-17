@@ -1,7 +1,19 @@
 // Supabase Configuration
-// This file is kept for reference, but Supabase is initialized in app.js
-const SUPABASE_CONFIG = {
-  url: 'https://hiojtrjfatfxbffrihnx.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpb2p0cmpmYXRmeGJmZnJpaG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk1NjEsImV4cCI6MjA3ODE0NTU2MX0.HuCpZ2HaNrPXrh6mGR9aH6VGQXEQyDFHzP3_ep9f8Eg'
-};
+// ⚠️ WARNING: This file contains sensitive information
+// DO NOT commit this file to Git! It should be in .gitignore
+// Copy from config.example.js and fill in your actual values
 
+// Read from environment variables or use config object
+const supabaseUrl = window.SUPABASE_URL || 
+                    (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.url : null) ||
+                    'YOUR_SUPABASE_URL_HERE';
+
+const supabaseAnonKey = window.SUPABASE_ANON_KEY || 
+                        (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
+                        'YOUR_SUPABASE_ANON_KEY_HERE';
+
+// Validate configuration
+if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+    console.error('⚠️ Supabase configuration is missing! Please set SUPABASE_URL and SUPABASE_ANON_KEY');
+    console.error('See config.example.js for instructions');
+}
