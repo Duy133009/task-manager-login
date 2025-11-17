@@ -6,8 +6,11 @@
     <title>Tasks - Dashboard</title>
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Load config before dashboard.js -->
-    <script src="assets/js/config.js"></script>
+    <!-- Supabase Configuration for Production -->
+    <script>
+      window.SUPABASE_URL = 'https://hiojtrjfatfxbffrihnx.supabase.co';
+      window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpb2p0cmpmYXRmeGJmZnJpaG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk1NjEsImV4cCI6MjA3ODE0NTU2MX0.HuCpZ2HaNrPXrh6mGR9aH6VGQXEQyDFHzP3_ep9f8Eg';
+    </script>
 </head>
 <body>
     <!-- Top Header Bar -->
@@ -374,7 +377,6 @@
         </div>
     </div>
 
-    <script src="assets/js/config.js"></script>
     <script src="assets/js/dashboard.js"></script>
 </body>
 </html>
