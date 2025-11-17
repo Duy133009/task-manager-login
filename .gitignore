@@ -10,12 +10,13 @@ yarn.lock
 
 # Credentials and secrets
 google-credentials.txt
-assets/js/config.js
-config.js
+# Note: config.js contains Supabase public keys (safe to commit)
+# Only service_role key should be in .gitignore
 *.key
 *.pem
 .env
 .env.local
+.env.production
 
 # IDE
 .vscode/
