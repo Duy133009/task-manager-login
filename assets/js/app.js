@@ -104,7 +104,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 .single();
             
             if (lookupError || !userData) {
-                throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+                errorDiv.textContent = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                errorDiv.style.display = 'block';
+                return;
             }
             email = userData.email;
         }
@@ -116,34 +118,81 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         });
         
         if (authError) {
-            if (authError.message.includes('Invalid login credentials')) {
-                throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+            // Handle different error types
+            let errorMessage = 'Đã xảy ra lỗi khi đăng nhập';
+            
+            if (authError.message.includes('Invalid login credentials') || 
+                authError.message.includes('Invalid credentials')) {
+                errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
+            } else if (authError.message.includes('Email not confirmed')) {
+                errorMessage = 'Vui lòng xác thực email trước khi đăng nhập';
+            } else if (authError.message.includes('Too many requests')) {
+                errorMessage = 'Quá nhiều lần thử. Vui lòng thử lại sau vài phút';
+            } else {
+                errorMessage = authError.message || 'Đã xảy ra lỗi khi đăng nhập';
             }
-            throw authError;
+            
+            errorDiv.textContent = errorMessage;
+            errorDiv.style.display = 'block';
+            return;
         }
         
-        // Get user profile from users table
+        // Get user ID from auth data
+        const userId = authData.user.id;
+        
+        // Get user profile from users table (using user ID from auth)
         const { data: userProfile, error: profileError } = await supabaseClient
             .from('users')
             .select('*')
-            .eq('email', email)
+            .eq('id', userId)
             .single();
         
-        if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-        }
-        
-        // Update last login
-        if (userProfile) {
+        // If user profile doesn't exist, create it
+        if (profileError && profileError.code === 'PGRST116') {
+            // User profile doesn't exist, create it
+            const { data: newProfile, error: createError } = await supabaseClient
+                .from('users')
+                .insert({
+                    id: userId,
+                    email: authData.user.email,
+                    username: authData.user.email.split('@')[0] + '_' + Date.now().toString().slice(-6),
+                    full_name: authData.user.user_metadata?.full_name || '',
+                    email_verified: authData.user.email_confirmed_at ? true : false
+                })
+                .select()
+                .single();
+            
+            if (createError) {
+                console.error('Error creating user profile:', createError);
+                // Continue anyway - user can still login
+            } else {
+                // Use newly created profile
+                const profile = newProfile;
+                
+                // Update last login
+                await supabaseClient
+                    .from('users')
+                    .update({ last_login: new Date().toISOString() })
+                    .eq('id', userId);
+                
+                // Store user data
+                localStorage.setItem('user_id', profile.id);
+                localStorage.setItem('user_data', JSON.stringify({
+                    id: profile.id,
+                    username: profile.username,
+                    email: profile.email,
+                    full_name: profile.full_name
+                }));
+            }
+        } else if (userProfile) {
+            // User profile exists
+            // Update last login
             await supabaseClient
                 .from('users')
                 .update({ last_login: new Date().toISOString() })
-                .eq('id', userProfile.id);
-        }
-        
-        // Store session info (Supabase handles session automatically)
-        // Only store non-sensitive user data
-        if (userProfile) {
+                .eq('id', userId);
+            
+            // Store user data
             localStorage.setItem('user_id', userProfile.id);
             localStorage.setItem('user_data', JSON.stringify({
                 id: userProfile.id,
@@ -151,22 +200,28 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 email: userProfile.email,
                 full_name: userProfile.full_name
             }));
-        }
-        
-        // Set session persistence
-        if (rememberMe) {
-            // Supabase session is already persistent, but we can extend it
-            // Session is managed by Supabase Auth automatically
+        } else {
+            console.warn('Could not load or create user profile');
+            // Store minimal data from auth anyway
+            localStorage.setItem('user_id', userId);
+            localStorage.setItem('user_data', JSON.stringify({
+                id: userId,
+                username: authData.user.email.split('@')[0],
+                email: authData.user.email,
+                full_name: authData.user.user_metadata?.full_name || ''
+            }));
         }
         
         // Show success and redirect
         showSuccess('Đăng nhập thành công! Đang chuyển hướng...');
         
+        // Small delay to show success message, then redirect
         setTimeout(() => {
             window.location.href = 'dashboard.html';
-        }, 1500);
+        }, 500);
         
     } catch (error) {
+        console.error('Login error:', error);
         errorDiv.textContent = error.message || 'Đã xảy ra lỗi khi đăng nhập';
         errorDiv.style.display = 'block';
     } finally {

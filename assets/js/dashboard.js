@@ -72,9 +72,37 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     if (userError) {
         console.error('Error loading user data:', userError);
-    }
-    
-    if (fullUser) {
+        
+        // If user profile doesn't exist, create it from auth user
+        if (userError.code === 'PGRST116') {
+            const authUser = session.user;
+            const { data: newUser, error: createError } = await supabaseClient
+                .from('users')
+                .insert({
+                    id: currentUserId,
+                    email: authUser.email,
+                    username: authUser.email.split('@')[0] + '_' + Date.now().toString().slice(-6),
+                    full_name: authUser.user_metadata?.full_name || '',
+                    email_verified: authUser.email_confirmed_at ? true : false
+                })
+                .select()
+                .single();
+            
+            if (createError) {
+                console.error('Error creating user profile:', createError);
+                // Continue anyway - user can still use dashboard
+            } else {
+                allUsers[newUser.id] = newUser;
+                localStorage.setItem('user_id', newUser.id);
+                localStorage.setItem('user_data', JSON.stringify({
+                    id: newUser.id,
+                    username: newUser.username,
+                    email: newUser.email,
+                    full_name: newUser.full_name
+                }));
+            }
+        }
+    } else if (fullUser) {
         allUsers[fullUser.id] = fullUser;
         console.log('User data loaded:', fullUser.email, fullUser.full_name);
         
@@ -86,8 +114,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             email: fullUser.email,
             full_name: fullUser.full_name
         }));
-    } else {
-        console.warn('User data not found for id:', currentUserId);
     }
 
     // Setup event listeners
