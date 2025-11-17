@@ -526,6 +526,15 @@ function setupRegisterForm() {
 
             // Try to create user profile manually in case trigger doesn't work
             console.log('Creating user profile manually...');
+            console.log('Auth user data:', {
+                id: authData.user.id,
+                email: authData.user.email,
+                confirmed: !!authData.user.email_confirmed_at
+            });
+            console.log('Profile data to insert:', {
+                username, fullName, email_verified: authData.user.email_confirmed_at ? true : false
+            });
+
             try {
                 const { data: profileData, error: profileError } = await supabaseClient
                     .from('users')
@@ -544,14 +553,19 @@ function setupRegisterForm() {
                     .single();
 
                 if (profileError) {
-                    console.error('Error creating user profile:', profileError);
-                    // Don't throw error, continue with success flow
+                    console.error('❌ Error creating user profile:', profileError);
+                    console.error('Error details:', JSON.stringify(profileError, null, 2));
+                    alert('Lỗi: Không thể tạo profile user. Vui lòng thử lại.');
+                    // Don't continue with success flow if profile creation failed
+                    return;
                 } else {
-                    console.log('User profile created/updated successfully:', profileData);
+                    console.log('✅ User profile created/updated successfully:', profileData);
                 }
             } catch (error) {
-                console.error('Failed to create user profile:', error);
-                // Don't throw error, continue with success flow
+                console.error('❌ Failed to create user profile:', error);
+                console.error('Error stack:', error.stack);
+                alert('Lỗi: Không thể tạo profile user. Vui lòng thử lại.');
+                return;
             }
         
             // If we have a session, user is logged in - redirect to dashboard immediately
@@ -571,36 +585,36 @@ function setupRegisterForm() {
         
             // Otherwise, show success and switch to login form
             showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
-        
+
             // Clear form first
             form.reset();
-        
-            // Switch to login form after 1.5 seconds
+
+            // Switch to login form immediately
             setTimeout(() => {
                 // Ensure container is available
                 const containerEl = document.querySelector('.container');
                 if (containerEl) {
                     containerEl.classList.remove('active');
-                    console.log('Switched to login form');
+                    console.log('✅ Switched to login form');
                 } else {
-                    console.error('Container not found for switching');
+                    console.error('❌ Container not found for switching');
                 }
-            
+
                 // Pre-fill email in login form
                 const loginEmailInput = document.getElementById('loginUsername');
                 if (loginEmailInput) {
                     loginEmailInput.value = email;
-                    console.log('Pre-filled email:', email);
+                    console.log('✅ Pre-filled email:', email);
                 } else {
-                    console.error('Login email input not found');
+                    console.error('❌ Login email input not found');
                 }
-            
+
                 // Clear any errors
                 document.querySelectorAll('.error-message').forEach(e => {
                     e.style.display = 'none';
                     e.textContent = '';
                 });
-            }, 1500);
+            }, 500); // Reduced delay to 0.5 seconds
         
     } catch (error) {
             console.error('Register error:', error);
