@@ -600,18 +600,8 @@ function setupRegisterForm() {
 
 // Helper functions
 function showSuccess(message) {
-    const successDiv = document.getElementById('successMessage');
-    if (successDiv) {
-        successDiv.textContent = message;
-        successDiv.style.display = 'block';
-
-        setTimeout(() => {
-            successDiv.style.display = 'none';
-        }, 5000);
-    } else {
-        // Fallback to beautiful toast if successMessage div not found
-        showSuccessMessage(message);
-    }
+    // Always use beautiful toast notification
+    showSuccessMessage(message);
 }
 
 // Beautiful success message toast
