@@ -12,9 +12,9 @@
 </head>
 <body>
     <!-- Loading indicator -->
-    <div id="loading-indicator" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 9999; color: #fff;">
-        <div style="font-size: 24px; margin-bottom: 8px;">⏳</div>
-        <div>Đang tải...</div>
+    <div id="loading-indicator" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 9999; color: #fff; background: rgba(0, 0, 0, 0.75); padding: 24px 36px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);">
+        <div style="font-size: 28px; margin-bottom: 10px;">⏳</div>
+        <div>Đang tải dữ liệu...</div>
     </div>
     
     <div class="container" id="authContainer" style="opacity: 0; transition: opacity 0.3s;">
@@ -280,6 +280,17 @@
             </form>
         </div>
     </div>
+
+    <script>
+        // Fail-safe: nếu JS chính không chạy, tự động bỏ loader sau 6s để tránh màn hình trắng
+        window.__appFailSafeTimer = setTimeout(() => {
+            const loader = document.getElementById('loading-indicator');
+            const container = document.getElementById('authContainer');
+            if (loader) loader.style.display = 'none';
+            if (container) container.style.opacity = '1';
+            console.warn('Fail-safe: Supabase chưa phản hồi sau 6s, hiển thị giao diện cơ bản.');
+        }, 6000);
+    </script>
 
     <!-- Scripts loaded in correct order -->
     <script src="assets/js/app.js"></script>

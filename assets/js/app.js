@@ -1,6 +1,10 @@
 console.log('app.js starting...');
 
 function showCriticalErrorScreen(message) {
+    if (window.__appFailSafeTimer) {
+        clearTimeout(window.__appFailSafeTimer);
+        window.__appFailSafeTimer = null;
+    }
     console.error(message);
     window.addEventListener('DOMContentLoaded', () => {
         const loadingIndicator = document.getElementById('loading-indicator');
@@ -27,6 +31,12 @@ function showCriticalErrorScreen(message) {
     if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         showCriticalErrorScreen('Không thể tải thư viện Supabase. Hãy đảm bảo script @supabase/supabase-js đã load trước app.js.');
         return;
+    }
+
+    if (window.__appFailSafeTimer) {
+        clearTimeout(window.__appFailSafeTimer);
+        window.__appFailSafeTimer = null;
+        console.log('Fail-safe timeout cleared (app.js đã chạy).');
     }
 
     // Load config first
@@ -891,6 +901,10 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.error('Stack:', error.stack);
         alert('Error loading page: ' + error.message);
     } finally {
+        if (window.__appFailSafeTimer) {
+            clearTimeout(window.__appFailSafeTimer);
+            window.__appFailSafeTimer = null;
+        }
         // ALWAYS hide loading indicator and show page
         console.log('12. Hiding loading indicator...');
         const loadingIndicator = document.getElementById('loading-indicator');
@@ -909,3 +923,4 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 })();
+
