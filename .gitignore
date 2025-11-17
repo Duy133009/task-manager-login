@@ -10,8 +10,8 @@ yarn.lock
 
 # Credentials and secrets
 google-credentials.txt
-config.js
-# Note: config.js should not be committed for security
+# config.js - Commented out to allow deployment for demo
+# Note: In production, config.js should not be committed
 # Use config.example.js as template
 *.key
 *.pem
