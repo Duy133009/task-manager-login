@@ -1,19 +1,18 @@
 // Supabase Configuration
 // ⚠️ WARNING: This file contains sensitive information
 // DO NOT commit this file to Git! It should be in .gitignore
-// Copy from config.example.js and fill in your actual values
+// 
+// HƯỚNG DẪN:
+// 1. Lấy Supabase URL và Anon Key từ Supabase Dashboard:
+//    - Vào Project Settings → API
+//    - Copy "Project URL" → dán vào url bên dưới
+//    - Copy "anon public" key → dán vào anonKey bên dưới
+//
+// 2. Hoặc sử dụng biến môi trường (khuyến nghị cho production):
+//    - Set window.SUPABASE_URL và window.SUPABASE_ANON_KEY
+//    - Trước khi load config.js trong HTML
 
-// Read from environment variables or use config object
-const supabaseUrl = window.SUPABASE_URL || 
-                    (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.url : null) ||
-                    'YOUR_SUPABASE_URL_HERE';
-
-const supabaseAnonKey = window.SUPABASE_ANON_KEY || 
-                        (typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.anonKey : null) ||
-                        'YOUR_SUPABASE_ANON_KEY_HERE';
-
-// Validate configuration
-if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
-    console.error('⚠️ Supabase configuration is missing! Please set SUPABASE_URL and SUPABASE_ANON_KEY');
-    console.error('See config.example.js for instructions');
-}
+const SUPABASE_CONFIG = {
+  url: 'YOUR_SUPABASE_URL_HERE',        // Ví dụ: 'https://xxxxx.supabase.co'
+  anonKey: 'YOUR_SUPABASE_ANON_KEY_HERE' // Ví dụ: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+};
