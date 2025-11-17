@@ -128,6 +128,15 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 return;
             }
             email = userData.email;
+            
+            // Check if user exists in Supabase Auth
+            // If not, this is an old account that needs migration
+            const { data: authUser } = await supabaseClient.auth.admin.getUserByEmail(email).catch(() => null);
+            if (!authUser) {
+                errorDiv.innerHTML = 'Tài khoản này chưa được migrate sang hệ thống mới.<br><small>Vui lòng đăng ký lại hoặc reset password.</small>';
+                errorDiv.style.display = 'block';
+                return;
+            }
         }
         
         // Sign in using Supabase Auth
