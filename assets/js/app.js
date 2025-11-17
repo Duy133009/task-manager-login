@@ -410,9 +410,19 @@ document.getElementById('forgotPasswordForm').addEventListener('submit', async (
     errorDiv.style.display = 'none';
     
     try {
+        // Determine the correct redirect URL
+        // Use production URL if available, otherwise use current origin
+        const productionUrl = 'https://duy133009.github.io/task-manager-login';
+        const redirectUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? `${window.location.origin}/index.html`
+            : `${productionUrl}/index.html`;
+        
+        console.log('Sending password reset email to:', email);
+        console.log('Redirect URL:', redirectUrl);
+        
         // Send password reset email using Supabase Auth
         const { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/index.html?reset=true`
+            redirectTo: redirectUrl
         });
         
         if (error) {
@@ -473,23 +483,52 @@ document.getElementById('resetPasswordForm').addEventListener('submit', async (e
     errorDiv.style.display = 'none';
     
     try {
+        // Check if we have a valid session first
+        const { data: { session: currentSession }, error: sessionCheckError } = await supabaseClient.auth.getSession();
+        
+        if (!currentSession || sessionCheckError) {
+            throw new Error('Session không hợp lệ. Vui lòng yêu cầu link đặt lại mật khẩu mới.');
+        }
+        
+        console.log('Updating password for user:', currentSession.user.id);
+        
         // Update password using Supabase Auth
         const { data, error } = await supabaseClient.auth.updateUser({
             password: newPassword
         });
         
         if (error) {
-            if (error.message.includes('session')) {
+            console.error('Error updating password:', error);
+            if (error.message.includes('session') || error.message.includes('expired') || error.message.includes('invalid')) {
                 throw new Error('Link đặt lại mật khẩu đã hết hạn. Vui lòng yêu cầu link mới.');
+            }
+            if (error.message.includes('same')) {
+                throw new Error('Mật khẩu mới phải khác mật khẩu cũ');
             }
             throw error;
         }
         
+        if (!data || !data.user) {
+            throw new Error('Không thể cập nhật mật khẩu. Vui lòng thử lại.');
+        }
+        
+        console.log('Password updated successfully');
+        
+        // Sign out to clear session (user needs to login with new password)
+        await supabaseClient.auth.signOut();
+        
+        // Clear localStorage
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_data');
+        
         // Show success and redirect
-        showSuccess('Đặt lại mật khẩu thành công! Đang chuyển đến trang đăng nhập...');
+        showSuccess('Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.');
+        
+        // Close modal
+        document.getElementById('resetPasswordModal').style.display = 'none';
         
         setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         }, 2000);
         
     } catch (error) {
@@ -529,17 +568,44 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     // If coming from password reset email link
     if (type === 'recovery' && accessToken) {
+        console.log('Processing password reset link...');
+        
         // Set the session with the access token
         const { data, error } = await supabaseClient.auth.setSession({
             access_token: accessToken,
             refresh_token: urlParams.get('refresh_token') || ''
         });
         
-        if (!error && data.session) {
+        if (error) {
+            console.error('Error setting session from reset link:', error);
+            
+            // Handle specific errors
+            if (error.message.includes('expired') || error.message.includes('invalid')) {
+                alert('Link đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu link mới.');
+                // Clean URL and redirect
+                window.history.replaceState({}, document.title, window.location.pathname);
+                return;
+            }
+            
+            // Show error in modal if exists
+            const resetModal = document.getElementById('resetPasswordModal');
+            if (resetModal) {
+                resetModal.style.display = 'block';
+                const errorDiv = document.getElementById('resetPasswordError');
+                if (errorDiv) {
+                    errorDiv.textContent = 'Link đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu link mới.';
+                    errorDiv.style.display = 'block';
+                }
+            }
+        } else if (data && data.session) {
+            console.log('Session set successfully, showing reset password modal');
             // Show reset password modal
-            document.getElementById('resetPasswordModal').style.display = 'block';
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
+            const resetModal = document.getElementById('resetPasswordModal');
+            if (resetModal) {
+                resetModal.style.display = 'block';
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         }
     }
     
