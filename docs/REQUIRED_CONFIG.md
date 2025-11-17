@@ -62,9 +62,31 @@
 {{ .SiteURL }}/index.html?type=recovery&access_token={{ .Token }}&refresh_token={{ .RefreshToken }}
 ```
 
-### 4. RLS Policies (Nếu chưa chạy)
+### 4. RLS Policies (Row Level Security) - QUAN TRỌNG!
 
-**Chạy SQL script trong `docs/supabase-setup.sql`**
+**RLS Policies là gì?**
+- RLS là cơ chế bảo mật của Supabase/PostgreSQL
+- Nó đảm bảo users chỉ có thể truy cập dữ liệu của chính họ
+- **KHÔNG có RLS = TẤT CẢ users có thể xem/sửa TẤT CẢ dữ liệu!** ⚠️
+
+**Tại sao cần chạy SQL script?**
+- Script `docs/supabase-setup.sql` tạo các policies để:
+  - Users chỉ đọc được tasks của mình (owned, assigned, subscribed)
+  - Chỉ owner mới được edit/delete tasks
+  - Users chỉ xem được profile của chính họ
+  - Tự động tạo user profile khi sign up (trigger)
+
+**Cách chạy:**
+1. Vào **Supabase Dashboard** → **SQL Editor**
+2. Tạo query mới
+3. Copy toàn bộ nội dung file `docs/supabase-setup.sql`
+4. Paste vào SQL Editor
+5. Click **Run** (hoặc `Ctrl+Enter`)
+6. Kiểm tra output - phải không có lỗi
+
+**Nếu đã chạy rồi:**
+- Có thể bỏ qua bước này
+- Nhưng nên kiểm tra lại policies đã đúng chưa
 
 ## 🧪 Test Checklist
 
