@@ -73,9 +73,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (userError) {
         console.error('Error loading user data:', userError);
         
-        // If user profile doesn't exist, create it from auth user
+        // If user profile doesn't exist, use auth user data
         if (userError.code === 'PGRST116') {
+            console.warn('User profile not found, using auth user data');
             const authUser = session.user;
+            
+            // Try to create user profile (trigger should handle this, but just in case)
             const { data: newUser, error: createError } = await supabaseClient
                 .from('users')
                 .insert({
@@ -90,7 +93,16 @@ window.addEventListener('DOMContentLoaded', async () => {
             
             if (createError) {
                 console.error('Error creating user profile:', createError);
-                // Continue anyway - user can still use dashboard
+                // Use auth user data as fallback
+                const fallbackUser = {
+                    id: currentUserId,
+                    email: authUser.email,
+                    username: authUser.email.split('@')[0],
+                    full_name: authUser.user_metadata?.full_name || ''
+                };
+                allUsers[currentUserId] = fallbackUser;
+                localStorage.setItem('user_id', currentUserId);
+                localStorage.setItem('user_data', JSON.stringify(fallbackUser));
             } else {
                 allUsers[newUser.id] = newUser;
                 localStorage.setItem('user_id', newUser.id);
@@ -101,6 +113,19 @@ window.addEventListener('DOMContentLoaded', async () => {
                     full_name: newUser.full_name
                 }));
             }
+        } else {
+            // Other error - use auth user data as fallback
+            console.warn('Using auth user data as fallback');
+            const authUser = session.user;
+            const fallbackUser = {
+                id: currentUserId,
+                email: authUser.email,
+                username: authUser.email.split('@')[0],
+                full_name: authUser.user_metadata?.full_name || ''
+            };
+            allUsers[currentUserId] = fallbackUser;
+            localStorage.setItem('user_id', currentUserId);
+            localStorage.setItem('user_data', JSON.stringify(fallbackUser));
         }
     } else if (fullUser) {
         allUsers[fullUser.id] = fullUser;
