@@ -11,7 +11,13 @@
     <script src="assets/js/config.js"></script>
 </head>
 <body>
-    <div class="container" id="authContainer">
+    <!-- Loading indicator -->
+    <div id="loading-indicator" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 9999;">
+        <div style="font-size: 24px;">⏳</div>
+        <div>Loading...</div>
+    </div>
+    
+    <div class="container" id="authContainer" style="opacity: 0; transition: opacity 0.3s;">
         <!-- Login Form -->
         <div class="form-box login">
             <form id="loginForm" action="#" method="post" onsubmit="return false;">

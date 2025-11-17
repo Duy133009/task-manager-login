@@ -839,4 +839,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     setupRegisterForm();
     
     console.log('All form handlers initialized');
+    
+    // Hide loading indicator and show page
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const authContainer = document.getElementById('authContainer');
+    
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+    }
+    
+    if (authContainer) {
+        authContainer.style.opacity = '1';
+    }
+    
+    console.log('Page ready!');
 });
