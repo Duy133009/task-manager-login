@@ -481,8 +481,25 @@ document.getElementById('resetPasswordForm').addEventListener('submit', async (e
 
 // Check if user is coming from password reset link
 window.addEventListener('DOMContentLoaded', async () => {
-    // Check URL parameters for password reset
+    // Clean URL - remove any sensitive query parameters (username, password, etc.)
     const urlParams = new URLSearchParams(window.location.search);
+    const sensitiveParams = ['username', 'password', 'email', 'token'];
+    let urlChanged = false;
+    
+    sensitiveParams.forEach(param => {
+        if (urlParams.has(param)) {
+            urlParams.delete(param);
+            urlChanged = true;
+        }
+    });
+    
+    // Update URL if sensitive params were removed
+    if (urlChanged) {
+        const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.history.replaceState({}, document.title, newUrl);
+    }
+    
+    // Check URL parameters for password reset
     const isReset = urlParams.get('reset');
     const accessToken = urlParams.get('access_token');
     const type = urlParams.get('type');

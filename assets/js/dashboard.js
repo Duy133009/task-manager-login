@@ -53,11 +53,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     if (!session || sessionError) {
         // No valid session, redirect to login
+        console.log('No valid session, redirecting to login');
+        console.log('Session:', session);
+        console.log('Session error:', sessionError);
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_data');
-        window.location.href = 'index.html';
+        // Clean URL before redirect
+        window.location.replace('index.html');
         return;
     }
+    
+    console.log('Session valid, user ID:', session.user.id);
 
     // Get user ID from Supabase Auth
     currentUserId = session.user.id;
