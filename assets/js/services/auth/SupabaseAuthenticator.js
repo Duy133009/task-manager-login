@@ -38,28 +38,12 @@ class SupabaseAuthenticator {
         }
 
         try {
-            // Determine if identifier is email or username
-            const isEmail = credentials.identifier.includes('@');
-            let email = credentials.identifier;
-
-            // If username, lookup email from users table
-            if (!isEmail) {
-                const { data: userData, error: lookupError } = await this.supabase
-                    .from('users')
-                    .select('email')
-                    .eq('username', credentials.identifier)
-                    .single();
-
-                if (lookupError || !userData) {
-                    return {
-                        success: false,
-                        user: null,
-                        error: 'Tên đăng nhập không tồn tại',
-                        token: null
-                    };
-                }
-                email = userData.email;
-            }
+            // For now, assume identifier is email
+            // TODO: Implement username-to-email lookup securely
+            // This requires a separate endpoint or different auth flow
+            const email = credentials.identifier.includes('@')
+                ? credentials.identifier
+                : `${credentials.identifier}@temp.local`; // Temporary fallback
 
             // Sign in with Supabase
             const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -160,25 +144,8 @@ class SupabaseAuthenticator {
         }
 
         try {
-            // Check if username already exists
-            const { data: existingUsername, error: usernameCheckError } = await this.supabase
-                .from('users')
-                .select('username')
-                .eq('username', registerData.username)
-                .single();
-
-            if (usernameCheckError && usernameCheckError.code !== 'PGRST116') {
-                throw usernameCheckError;
-            }
-
-            if (existingUsername) {
-                return {
-                    success: false,
-                    user: null,
-                    error: 'Tên đăng nhập đã tồn tại',
-                    token: null
-                };
-            }
+            // Note: Username uniqueness will be handled by database constraints
+            // We don't check client-side for better security and user experience
 
             // Register with Supabase
             const { data, error } = await this.supabase.auth.signUp({
