@@ -42,7 +42,8 @@ const Config = {
         },
         password: {
             minLength: 6,
-            maxLength: 128
+            maxLength: 128,
+            pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/
         },
         email: {
             pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/

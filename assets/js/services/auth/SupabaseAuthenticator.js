@@ -193,6 +193,8 @@ class SupabaseAuthenticator {
                 let errorMessage = 'Đăng ký thất bại';
                 if (error.message.includes('already registered')) {
                     errorMessage = 'Email đã được sử dụng';
+                } else if (error.message.includes('Password should contain at least one character of each')) {
+                    errorMessage = 'Mật khẩu phải chứa ít nhất 1 chữ cái thường, 1 chữ cái hoa và 1 số';
                 } else if (error.message.includes('Password should be at least')) {
                     errorMessage = 'Mật khẩu phải có ít nhất 6 ký tự';
                 }
