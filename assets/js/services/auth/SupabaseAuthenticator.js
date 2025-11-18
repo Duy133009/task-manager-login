@@ -152,7 +152,7 @@ class SupabaseAuthenticator {
                 email: registerData.email,
                 password: registerData.password,
                 options: {
-                    emailRedirectTo: window.location.origin + '/index.html',
+                    emailRedirectTo: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/index.html'),
                     data: {
                         full_name: registerData.fullName,
                         username: registerData.username
@@ -271,7 +271,7 @@ class SupabaseAuthenticator {
 
         try {
             const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + '/index.html'
+                redirectTo: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/index.html')
             });
 
             if (error) {
