@@ -167,6 +167,13 @@ class SupabaseAuthenticator {
             // We don't check client-side for better security and user experience
 
             // Register with Supabase
+            console.log('Registering user:', {
+                email: registerData.email,
+                username: registerData.username,
+                fullName: registerData.fullName,
+                redirectUrl: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/index.html')
+            });
+
             const { data, error } = await this.supabase.auth.signUp({
                 email: registerData.email,
                 password: registerData.password,
@@ -178,6 +185,8 @@ class SupabaseAuthenticator {
                     }
                 }
             });
+
+            console.log('Supabase signup result:', { data, error });
 
             if (error) {
                 console.error('Supabase signup error:', error);
