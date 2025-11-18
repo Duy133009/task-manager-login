@@ -22,10 +22,6 @@ class SupabaseAuthenticator {
     _initializeSupabase() {
         if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
             this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseAnonKey);
-            console.log('Supabase client initialized:', {
-                url: this.supabaseUrl,
-                hasAnonKey: !!this.supabaseAnonKey
-            });
         } else {
             console.warn('Supabase library not loaded');
         }
@@ -152,18 +148,11 @@ class SupabaseAuthenticator {
             // We don't check client-side for better security and user experience
 
             // Register with Supabase
-            const redirectUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/index.html');
-            console.log('Attempting signup with:', {
-                email: registerData.email,
-                redirectUrl: redirectUrl,
-                hasPassword: !!registerData.password
-            });
-
             const { data, error } = await this.supabase.auth.signUp({
                 email: registerData.email,
                 password: registerData.password,
                 options: {
-                    emailRedirectTo: redirectUrl,
+                    emailRedirectTo: window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/index.html'),
                     data: {
                         full_name: registerData.fullName,
                         username: registerData.username
@@ -178,10 +167,6 @@ class SupabaseAuthenticator {
                     errorMessage = 'Email đã được sử dụng';
                 } else if (error.message.includes('Password should be at least')) {
                     errorMessage = 'Mật khẩu phải có ít nhất 6 ký tự';
-                } else if (error.message.includes('Invalid API key')) {
-                    errorMessage = 'Cấu hình Supabase không hợp lệ';
-                } else if (error.message.includes('JWT')) {
-                    errorMessage = 'Lỗi xác thực API key';
                 }
                 return {
                     success: false,
