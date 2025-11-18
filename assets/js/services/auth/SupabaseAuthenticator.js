@@ -38,12 +38,31 @@ class SupabaseAuthenticator {
         }
 
         try {
-            // For now, assume identifier is email
-            // TODO: Implement username-to-email lookup securely
-            // This requires a separate endpoint or different auth flow
-            const email = credentials.identifier.includes('@')
-                ? credentials.identifier
-                : `${credentials.identifier}@temp.local`; // Temporary fallback
+            let email;
+
+            // Check if identifier looks like an email or username
+            if (credentials.identifier.includes('@')) {
+                // It's an email address
+                email = credentials.identifier;
+            } else {
+                // It's a username - look up the email from the users table
+                const { data: userData, error: lookupError } = await this.supabase
+                    .from('users')
+                    .select('email')
+                    .eq('username', credentials.identifier)
+                    .single();
+
+                if (lookupError || !userData) {
+                    return {
+                        success: false,
+                        user: null,
+                        error: 'Tên đăng nhập hoặc mật khẩu không đúng',
+                        token: null
+                    };
+                }
+
+                email = userData.email;
+            }
 
             // Sign in with Supabase
             const { data, error } = await this.supabase.auth.signInWithPassword({
