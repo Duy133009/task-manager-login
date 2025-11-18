@@ -110,7 +110,14 @@ class ToastUIService {
      * @param {string} route
      */
     navigate(route) {
-        window.location.href = route;
+        // Handle GitHub Pages subdirectory routing
+        if (route.startsWith('/')) {
+            // Get the base path for GitHub Pages (e.g., /task-manager-login/)
+            const basePath = window.location.pathname.replace(/\/[^\/]*$/, '');
+            window.location.href = basePath + route;
+        } else {
+            window.location.href = route;
+        }
     }
 
     /**
