@@ -298,19 +298,62 @@ class TaskController {
     }
 
     /**
+     * Load users for assignment dropdown
+     */
+    async loadUsersForAssignment() {
+        try {
+            // Use RPC to get users list safely
+            const { data: users, error } = await this.taskService.taskRepository.supabase
+                .rpc('get_users_for_assignment');
+
+            if (error) throw error;
+
+            const select = document.getElementById('taskAssignedTo');
+            if (!select) return;
+
+            // Keep the default option
+            select.innerHTML = '<option value="">-- No one (unassigned) --</option>';
+
+            if (users && users.length > 0) {
+                users.forEach(user => {
+                    // Don't show current user in assignment list (optional)
+                    // if (user.id === this.currentUserId) return;
+
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.full_name || user.username || 'Unknown User';
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load users for assignment:', error);
+            // Fail silently for UI, just don't show users
+        }
+    }
+
+    /**
      * Open create task modal
      */
     openCreateTaskModal() {
-        // Implementation would open a modal for task creation
-        console.log('Opening create task modal');
+        const modal = document.getElementById('newTaskModal');
+        if (modal) {
+            modal.style.display = 'block';
+            // Load users when opening modal
+            this.loadUsersForAssignment();
+        }
     }
 
     /**
      * Close create task modal
      */
     closeCreateTaskModal() {
-        // Implementation would close the modal
-        console.log('Closing create task modal');
+        const modal = document.getElementById('newTaskModal');
+        if (modal) {
+            modal.style.display = 'none';
+            // Reset form
+            const form = document.getElementById('newTaskForm');
+            if (form) form.reset();
+        }
     }
 
     /**

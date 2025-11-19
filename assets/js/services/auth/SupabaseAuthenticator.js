@@ -45,14 +45,11 @@ class SupabaseAuthenticator {
                 // It's an email address
                 email = credentials.identifier;
             } else {
-                // It's a username - look up the email from the users table
-                const { data: userData, error: lookupError } = await this.supabase
-                    .from('users')
-                    .select('email')
-                    .eq('username', credentials.identifier)
-                    .single();
+                // It's a username - use RPC to look up email (bypasses RLS)
+                const { data: foundEmail, error: lookupError } = await this.supabase
+                    .rpc('get_email_by_username', { username_input: credentials.identifier });
 
-                if (lookupError || !userData) {
+                if (lookupError || !foundEmail) {
                     return {
                         success: false,
                         user: null,
@@ -61,7 +58,7 @@ class SupabaseAuthenticator {
                     };
                 }
 
-                email = userData.email;
+                email = foundEmail;
             }
 
             // Sign in with Supabase
