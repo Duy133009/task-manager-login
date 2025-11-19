@@ -711,29 +711,6 @@ function createTaskCardHtml(task) {
             </div>
             <div class="task-footer">
                 <label class="checkbox-container">
-                    <input type="checkbox" ${isCompleted ? 'checked' : ''} 
-                           onchange="handleTaskCheckboxChange('${task.id}', this.checked)">
-                    <span class="checkmark"></span>
-                    ${isCompleted ? 'Completed' : 'Mark Complete'}
-                </label>
-            </div>
-        </div>
-    `;
-}
-
-// Handle New Task
-async function handleNewTask(e) {
-    e.preventDefault();
-
-    const title = document.getElementById('taskTitle').value.trim();
-    const description = document.getElementById('taskDescription').value.trim();
-    const priority = document.getElementById('taskPriority').value;
-    const dueDate = document.getElementById('taskDueDate').value;
-    const assignedTo = document.getElementById('taskAssignee')?.value;
-
-    if (!title) {
-        toastService.warning('Vui lòng nhập tiêu đề task');
-        return;
     }
 
     try {
@@ -889,12 +866,12 @@ function applyFilters() {
     // Update filter text
     const filterText = document.getElementById('filterText');
     const activeFilters = [];
-    if (priorities.length > 0) activeFilters.push(`${priorities.length} priority`);
+    if (priorities.length > 0) activeFilters.push(`${ priorities.length } priority`);
     if (dueDateFrom || dueDateTo) activeFilters.push('date');
     if (overdue) activeFilters.push('overdue');
 
     if (filterText) {
-        filterText.textContent = activeFilters.length > 0 ? `Filter(${activeFilters.length})` : 'Filter';
+        filterText.textContent = activeFilters.length > 0 ? `Filter(${ activeFilters.length })` : 'Filter';
     }
 
     closeFilterModal();
@@ -915,7 +892,7 @@ function updateFilterDisplay() {
     const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
     const activeFilters = [];
     if (savedFilters.priorities && savedFilters.priorities.length > 0) {
-        activeFilters.push(`${savedFilters.priorities.length} priority`);
+        activeFilters.push(`${ savedFilters.priorities.length } priority`);
     }
     if (savedFilters.dueDateFrom || savedFilters.dueDateTo) {
         activeFilters.push('date');
@@ -926,7 +903,7 @@ function updateFilterDisplay() {
 
     const filterText = document.getElementById('filterText');
     if (filterText) {
-        filterText.textContent = activeFilters.length > 0 ? `Filter(${activeFilters.length})` : 'Filter';
+        filterText.textContent = activeFilters.length > 0 ? `Filter(${ activeFilters.length })` : 'Filter';
     }
 }
 
@@ -954,7 +931,7 @@ function setSort(sortBy, ascending) {
             'priority': 'Priority'
         };
         const arrow = ascending ? '↑' : '↓';
-        sortText.textContent = `Sort by: ${sortLabels[sortBy]} ${arrow} `;
+        sortText.textContent = `Sort by: ${ sortLabels[sortBy] } ${ arrow } `;
     }
 
     // Close menu
@@ -1415,7 +1392,7 @@ async function sendReminderEmail(email, task) {
         // - Supabase Edge Function with email service
 
         // For now, just log it
-        console.log(`Would send email to ${email} for task: ${task.title} `);
+        console.log(`Would send email to ${ email } for task: ${ task.title } `);
 
         // Log email sent
         await supabaseClient

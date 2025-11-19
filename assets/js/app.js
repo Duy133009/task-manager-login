@@ -216,9 +216,187 @@ function setupAuthForms(authController) {
     setupToggleButtons();
 }
 
+// Global variables for controllers and services
+let globalTaskController = null;
+let globalAuthService = null;
+
+// Define global functions immediately (before DOMContentLoaded)
+window.openNewTaskModal = () => {
+    if (globalTaskController) {
+        globalTaskController.openCreateTaskModal();
+    } else {
+        console.error('TaskController not initialized yet');
+    }
+};
+
+window.closeNewTaskModal = () => {
+    if (globalTaskController) {
+        globalTaskController.closeCreateTaskModal();
+    } else {
+        console.error('TaskController not initialized yet');
+    }
+};
+
+window.handleNewTask = async (e) => {
+    e.preventDefault();
+    if (!globalTaskController) {
+        console.error('TaskController not initialized yet');
+        return;
+    }
+
+    const formData = new FormData(e.target);
+    const taskData = {
+        title: formData.get('taskTitle')?.trim(),
+        description: formData.get('taskDescription')?.trim(),
+        priority: formData.get('taskPriority') || 'medium',
+        status: formData.get('taskStatus') || 'pending',
+        due_date: formData.get('taskDueDate') || null,
+        assigned_to: formData.get('taskAssignedTo') || null
+    };
+
+    await globalTaskController.createTask(taskData);
+};
+
+// Additional global utility functions
+window.toggleSidebar = () => {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+    }
+};
+
+window.logout = async () => {
+    try {
+        if (globalAuthService) {
+            await globalAuthService.logout();
+        }
+        window.location.replace('index.html');
+    } catch (error) {
+        console.error('Logout error:', error);
+        window.location.replace('index.html');
+    }
+};
+
+window.createNewGroup = () => {
+    alert('Create new group feature coming soon!');
+};
+
+// Modal functions
+window.openProfileModal = () => {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.style.display = 'block';
+};
+
+window.closeProfileModal = () => {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.openSettings = () => {
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.style.display = 'block';
+};
+
+window.closeSettingsModal = () => {
+    const modal = document.getElementById('settingsModal');
+    if (modal) modal.style.display = 'none';
+};
+
+// Filter functions
+window.toggleStatusFilter = () => {
+    if (!globalTaskController) return;
+    const statusOptions = [null, 'ongoing', 'pending', 'completed'];
+    const statusLabels = ['All', 'Ongoing', 'Pending', 'Completed'];
+    const currentIndex = statusOptions.indexOf(globalTaskController.currentFilter?.status || null);
+    const nextIndex = (currentIndex + 1) % statusOptions.length;
+
+    globalTaskController.applyFilter({ status: statusOptions[nextIndex] });
+    const statusText = document.getElementById('statusFilterText');
+    if (statusText) {
+        statusText.textContent = statusLabels[nextIndex];
+    }
+};
+
+window.openFilterModal = () => {
+    const modal = document.getElementById('filterModal');
+    if (modal) modal.style.display = 'block';
+};
+
+window.closeFilterModal = () => {
+    const modal = document.getElementById('filterModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.applyFilters = () => {
+    closeFilterModal();
+    if (globalTaskController) {
+        globalTaskController.loadAndDisplayTasks();
+    }
+};
+
+window.clearFilters = () => {
+    closeFilterModal();
+    if (globalTaskController) {
+        globalTaskController.loadAndDisplayTasks();
+    }
+};
+
+// Sort functions
+window.openSortMenu = (event) => {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('sortMenu');
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+window.setSort = (field, ascending) => {
+    if (globalTaskController) {
+        globalTaskController.applySort({ field, ascending });
+    }
+    const menu = document.getElementById('sortMenu');
+    if (menu) menu.style.display = 'none';
+};
+
+// Group functions
+window.toggleGroupBy = () => {
+    const groupByText = document.getElementById('groupByText');
+    if (groupByText && globalTaskController) {
+        const currentText = groupByText.textContent;
+        if (currentText.includes('Creator')) {
+            groupByText.textContent = 'No Grouping';
+            globalTaskController.applyFilter({ groupBy: null });
+        } else {
+            groupByText.textContent = 'Group by: Creator';
+            globalTaskController.applyFilter({ groupBy: 'creator' });
+        }
+        globalTaskController.loadAndDisplayTasks();
+    }
+};
+
+// Dark mode function
+window.toggleDarkMode = () => {
+    const toggle = document.getElementById('darkModeToggle');
+    const isDark = toggle ? toggle.checked : false;
+    localStorage.setItem('darkMode', isDark.toString());
+    const body = document.body;
+    if (isDark) {
+        body.classList.add('dark-mode');
+    } else {
+        body.classList.remove('dark-mode');
+    }
+};
+
 // Setup dashboard functionality
 function setupDashboard(taskController, authService) {
     console.log('Setting up dashboard...');
+
+    // Store references globally
+    globalTaskController = taskController;
+    globalAuthService = authService;
+
+    // Make taskController globally accessible for debugging
+    window.taskController = taskController;
 
     // Check authentication first
     checkAuthAndLoadDashboard(authService, taskController);
@@ -239,7 +417,14 @@ async function checkAuthAndLoadDashboard(authService, taskController) {
     // Load user data and tasks
     const currentUser = await authService.getCurrentUser();
     if (currentUser) {
+        // Set current user in task controller
+        taskController.setCurrentUser(currentUser.id);
+
         updateUserInfo(currentUser);
+
+        // Setup form event listeners after authentication
+        setupFormEventListeners();
+
         await loadTasks(taskController);
     }
 
@@ -251,6 +436,62 @@ async function checkAuthAndLoadDashboard(authService, taskController) {
             window.location.replace('index.html');
         });
     }
+}
+
+// Profile form handler
+async function handleSaveProfile(e) {
+    e.preventDefault();
+    console.log('Profile save not implemented yet');
+    closeProfileModal();
+}
+
+// Settings form handler
+async function handleSaveSettings(e) {
+    e.preventDefault();
+    console.log('Settings save not implemented yet');
+    closeSettingsModal();
+}
+
+// Setup form event listeners
+function setupFormEventListeners() {
+    console.log('Setting up form event listeners...');
+
+    // New task form
+    const newTaskForm = document.getElementById('newTaskForm');
+    if (newTaskForm) {
+        newTaskForm.addEventListener('submit', window.handleNewTask);
+        console.log('New task form event listener attached');
+    } else {
+        console.error('New task form not found');
+    }
+
+    // Profile form
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+        profileForm.addEventListener('submit', handleSaveProfile);
+    }
+
+    // Settings form
+    const settingsForm = document.getElementById('settingsForm');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', handleSaveSettings);
+    }
+
+    // Modal close handlers
+    window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            closeNewTaskModal();
+            closeProfileModal();
+            closeSettingsModal();
+            closeFilterModal();
+        }
+
+        // Close sort menu when clicking outside
+        const sortMenu = document.getElementById('sortMenu');
+        if (sortMenu && !e.target.closest('.sort-group') && !e.target.closest('#sortMenu')) {
+            sortMenu.style.display = 'none';
+        }
+    });
 }
 
 // Update user information in UI
