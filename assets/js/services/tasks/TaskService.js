@@ -27,7 +27,7 @@ class TaskService {
             user_id: userId,
             title: taskData.title.trim(),
             description: taskData.description ? taskData.description.trim() : null,
-            status: 'pending',
+            status: taskData.status || 'pending',
             priority: taskData.priority || 'medium',
             assigned_to: taskData.assignedTo || null,
             due_date: taskData.dueDate || null,

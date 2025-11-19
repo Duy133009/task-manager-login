@@ -250,8 +250,8 @@ window.handleNewTask = async (e) => {
         description: formData.get('taskDescription')?.trim(),
         priority: formData.get('taskPriority') || 'medium',
         status: formData.get('taskStatus') || 'pending',
-        due_date: formData.get('taskDueDate') || null,
-        assigned_to: formData.get('taskAssignedTo') || null
+        dueDate: formData.get('taskDueDate') || null,
+        assignedTo: formData.get('taskAssignedTo') || null
     };
 
     await globalTaskController.createTask(taskData);
