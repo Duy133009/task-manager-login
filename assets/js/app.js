@@ -479,7 +479,10 @@ function setupFormEventListeners() {
 
     // Modal close handlers
     window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) {
+        const target = e.target;
+        const isElement = target instanceof Element;
+
+        if (isElement && target.classList?.contains('modal')) {
             closeNewTaskModal();
             closeProfileModal();
             closeSettingsModal();
@@ -488,7 +491,7 @@ function setupFormEventListeners() {
 
         // Close sort menu when clicking outside
         const sortMenu = document.getElementById('sortMenu');
-        if (sortMenu && !e.target.closest('.sort-group') && !e.target.closest('#sortMenu')) {
+        if (sortMenu && isElement && !target.closest('.sort-group') && !target.closest('#sortMenu')) {
             sortMenu.style.display = 'none';
         }
     });
