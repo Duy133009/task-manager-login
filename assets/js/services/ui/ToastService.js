@@ -1,7 +1,11 @@
 class ToastService {
     constructor() {
         this.container = null;
-        this.init();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init(), { once: true });
+        } else {
+            this.init();
+        }
     }
 
     init() {
@@ -15,7 +19,15 @@ class ToastService {
         }
     }
 
+    ensureContainer() {
+        if (!this.container) {
+            this.init();
+        }
+    }
+
     show(message, type = 'info', duration = 3000) {
+        this.ensureContainer();
+
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
 
@@ -78,6 +90,3 @@ class ToastService {
         }
     }
 }
-
-// Export singleton
-window.toastService = new ToastService();

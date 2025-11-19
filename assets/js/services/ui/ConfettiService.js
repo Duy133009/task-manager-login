@@ -4,10 +4,19 @@ class ConfettiService {
         this.ctx = null;
         this.particles = [];
         this.animationId = null;
-        this.init();
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init(), { once: true });
+        } else {
+            this.init();
+        }
     }
 
     init() {
+        if (!document.body) {
+            return;
+        }
+
         if (!document.getElementById('confetti-canvas')) {
             this.canvas = document.createElement('canvas');
             this.canvas.id = 'confetti-canvas';
@@ -29,12 +38,20 @@ class ConfettiService {
         window.addEventListener('resize', () => this.resizeCanvas());
     }
 
+    ensureCanvas() {
+        if (!this.canvas) {
+            this.init();
+        }
+    }
+
     resizeCanvas() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
     }
 
     createParticles(count = 100) {
+        this.ensureCanvas();
+
         const colors = ['#4285f4', '#34a853', '#fbbc04', '#ea4335', '#ff6d00', '#aa00ff'];
 
         for (let i = 0; i < count; i++) {
@@ -93,12 +110,10 @@ class ConfettiService {
     }
 
     explode() {
+        this.ensureCanvas();
         this.createParticles(150);
         if (!this.animationId) {
             this.animate();
         }
     }
 }
-
-// Export singleton
-window.confettiService = new ConfettiService();
