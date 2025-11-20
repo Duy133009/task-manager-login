@@ -490,11 +490,14 @@ body.dark-mode .nav-item.active {
 
 /* Task Overview */
 .tasks-overview {
-    padding: 24px;
+    padding: 32px 24px;
     display: flex;
     flex-direction: column;
     gap: 24px;
     overflow-y: auto;
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .task-stats {
@@ -535,8 +538,9 @@ body.dark-mode .nav-item.active {
 
 .task-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    width: 100%;
 }
 
 .task-item {
@@ -547,8 +551,9 @@ body.dark-mode .nav-item.active {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    transition: all var(--transition-base);
+    width: 100%;
 }
 
 .task-item:hover {
