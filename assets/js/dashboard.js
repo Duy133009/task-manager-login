@@ -64,8 +64,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!session || sessionError) {
         // No valid session, redirect to login
         console.log('No valid session, redirecting to login');
+        console.log('Session:', session);
+        console.log('Session error:', sessionError);
         localStorage.removeItem('user_id');
         localStorage.removeItem('user_data');
+        // Clean URL before redirect
         window.location.replace('index.html');
         return;
     }
@@ -74,6 +77,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // Get user ID from Supabase Auth
     currentUserId = session.user.id;
+    console.log('Current user ID:', currentUserId);
 
     // Load full user data from database
     const { data: fullUser, error: userError } = await supabaseClient
@@ -84,19 +88,66 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     if (userError) {
         console.error('Error loading user data:', userError);
-        // Fallback to auth data if profile missing
-        const authUser = session.user;
-        const fallbackUser = {
-            id: currentUserId,
-            email: authUser.email,
-            username: authUser.email.split('@')[0],
-            full_name: authUser.user_metadata?.full_name || ''
-        };
-        allUsers[currentUserId] = fallbackUser;
-        localStorage.setItem('user_id', currentUserId);
-        localStorage.setItem('user_data', JSON.stringify(fallbackUser));
+
+        // If user profile doesn't exist, use auth user data
+        if (userError.code === 'PGRST116') {
+            console.warn('User profile not found, using auth user data');
+            const authUser = session.user;
+
+            // Try to create user profile (trigger should handle this, but just in case)
+            const { data: newUser, error: createError } = await supabaseClient
+                .from('users')
+                .insert({
+                    id: currentUserId,
+                    email: authUser.email,
+                    username: authUser.email.split('@')[0] + '_' + Date.now().toString().slice(-6),
+                    full_name: authUser.user_metadata?.full_name || '',
+                    email_verified: authUser.email_confirmed_at ? true : false
+                })
+                .select()
+                .single();
+
+            if (createError) {
+                console.error('Error creating user profile:', createError);
+                // Use auth user data as fallback
+                const fallbackUser = {
+                    id: currentUserId,
+                    email: authUser.email,
+                    username: authUser.email.split('@')[0],
+                    full_name: authUser.user_metadata?.full_name || ''
+                };
+                allUsers[currentUserId] = fallbackUser;
+                localStorage.setItem('user_id', currentUserId);
+                localStorage.setItem('user_data', JSON.stringify(fallbackUser));
+            } else {
+                allUsers[newUser.id] = newUser;
+                localStorage.setItem('user_id', newUser.id);
+                localStorage.setItem('user_data', JSON.stringify({
+                    id: newUser.id,
+                    username: newUser.username,
+                    email: newUser.email,
+                    full_name: newUser.full_name
+                }));
+            }
+        } else {
+            // Other error - use auth user data as fallback
+            console.warn('Using auth user data as fallback');
+            const authUser = session.user;
+            const fallbackUser = {
+                id: currentUserId,
+                email: authUser.email,
+                username: authUser.email.split('@')[0],
+                full_name: authUser.user_metadata?.full_name || ''
+            };
+            allUsers[currentUserId] = fallbackUser;
+            localStorage.setItem('user_id', currentUserId);
+            localStorage.setItem('user_data', JSON.stringify(fallbackUser));
+        }
     } else if (fullUser) {
         allUsers[fullUser.id] = fullUser;
+        console.log('User data loaded:', fullUser.email, fullUser.full_name);
+
+        // Store non-sensitive user data
         localStorage.setItem('user_id', fullUser.id);
         localStorage.setItem('user_data', JSON.stringify({
             id: fullUser.id,
@@ -302,7 +353,7 @@ async function saveModules() {
     }
 }
 
-// Get user's enabled modules
+// Get user's enabled modules (for use in other parts of the app)
 async function getUserModules() {
     try {
         const { data: userModules, error } = await supabaseClient
@@ -362,7 +413,7 @@ async function loadProfileData() {
     try {
         if (!currentUserId) {
             console.error('No current user ID');
-            toastService.error('Vui lòng đăng nhập lại');
+            alert('Vui lòng đăng nhập lại');
             return;
         }
 
@@ -372,8 +423,14 @@ async function loadProfileData() {
             .eq('id', currentUserId)
             .single();
 
-        if (error) throw error;
-        if (!user) throw new Error('User not found');
+        if (error) {
+            console.error('Supabase error:', error);
+            throw error;
+        }
+
+        if (!user) {
+            throw new Error('User not found');
+        }
 
         // Set form values safely
         const fullNameInput = document.getElementById('profileFullName');
@@ -384,7 +441,7 @@ async function loadProfileData() {
         if (usernameInput) usernameInput.value = user.username || '';
         if (emailInput) emailInput.value = user.email || '';
 
-        // Display avatar in modal
+        // Display avatar in modal (if elements exist)
         const profileAvatarImg = document.getElementById('profileAvatarImg');
         const profileAvatarText = document.getElementById('profileAvatarText');
 
@@ -402,7 +459,8 @@ async function loadProfileData() {
         }
     } catch (error) {
         console.error('Error loading profile:', error);
-        toastService.error('Có lỗi xảy ra khi tải thông tin profile');
+        const errorMessage = error.message || 'Có lỗi xảy ra khi tải thông tin profile';
+        alert(`Lỗi: ${errorMessage}\n\nChi tiết: ${JSON.stringify(error, null, 2)}`);
     }
 }
 
@@ -411,7 +469,7 @@ async function handleSaveProfile(e) {
     e.preventDefault();
 
     if (!currentUserId) {
-        toastService.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+        alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
         window.location.href = 'index.html';
         return;
     }
@@ -502,23 +560,29 @@ async function loadTasks() {
         return;
     }
 
-    // Show loading state
+    // Show loading state for card layout
     container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: var(--text-secondary);">Đang tải tasks...</div>';
 
     try {
+        // Check if currentUserId is available
         if (!currentUserId) {
-            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Lỗi: Không tìm thấy thông tin người dùng.</div>';
+            console.error('currentUserId is not set');
+            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.</div>';
             return;
         }
 
-        let query = supabaseClient.from('tasks').select('*');
+        let query = supabaseClient
+            .from('tasks')
+            .select('*');
 
         // Filter by view
         switch (currentView) {
             case 'owned':
+                // Tasks created by user (owner)
                 query = query.eq('user_id', currentUserId).neq('status', 'completed');
                 break;
             case 'subscribed':
+                // Tasks user has subscribed to
                 const { data: subscribedTasks } = await supabaseClient
                     .from('task_subscriptions')
                     .select('task_id')
@@ -528,22 +592,75 @@ async function loadTasks() {
                     const taskIds = subscribedTasks.map(s => s.task_id);
                     query = query.in('id', taskIds).neq('status', 'completed');
                 } else {
-                    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+                    // No subscriptions, return empty result
+                    query = query.eq('id', '00000000-0000-0000-0000-000000000000'); // Impossible ID
                 }
                 break;
             case 'created':
+                // Same as owned - tasks created by user
                 query = query.eq('user_id', currentUserId).neq('status', 'completed');
                 break;
             case 'assigned':
+                // Tasks assigned to user
                 query = query.eq('assigned_to', currentUserId).neq('status', 'completed');
                 break;
             case 'completed':
+                // Only completed tasks
                 query = query.eq('user_id', currentUserId).eq('status', 'completed');
                 break;
             case 'all':
             default:
-                // Logic for 'all' view (simplified for brevity, can expand if needed)
-                query = query.or(`user_id.eq.${currentUserId},assigned_to.eq.${currentUserId}`).neq('status', 'completed');
+                // All active tasks (owned, assigned, or subscribed) - hide completed
+                // First get subscribed task IDs
+                const { data: allSubscribedTasks } = await supabaseClient
+                    .from('task_subscriptions')
+                    .select('task_id')
+                    .eq('user_id', currentUserId);
+
+                const subscribedTaskIds = allSubscribedTasks?.map(s => s.task_id) || [];
+
+                // Get all task IDs that user should see
+                const allTaskIds = new Set();
+
+                // Get owned tasks
+                const { data: ownedTaskIds } = await supabaseClient
+                    .from('tasks')
+                    .select('id')
+                    .eq('user_id', currentUserId)
+                    .neq('status', 'completed');
+                if (ownedTaskIds) {
+                    ownedTaskIds.forEach(t => allTaskIds.add(t.id));
+                }
+
+                // Get assigned tasks
+                const { data: assignedTaskIds } = await supabaseClient
+                    .from('tasks')
+                    .select('id')
+                    .eq('assigned_to', currentUserId)
+                    .neq('status', 'completed');
+                if (assignedTaskIds) {
+                    assignedTaskIds.forEach(t => allTaskIds.add(t.id));
+                }
+
+                // Add subscribed tasks
+                if (subscribedTaskIds.length > 0) {
+                    const { data: subscribedTaskData } = await supabaseClient
+                        .from('tasks')
+                        .select('id')
+                        .in('id', subscribedTaskIds)
+                        .neq('status', 'completed');
+                    if (subscribedTaskData) {
+                        subscribedTaskData.forEach(t => allTaskIds.add(t.id));
+                    }
+                }
+
+                // Query all tasks by IDs
+                if (allTaskIds.size > 0) {
+                    query = query.in('id', Array.from(allTaskIds));
+                } else {
+                    // No tasks, return empty result
+                    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+                }
                 break;
         }
 
@@ -556,17 +673,21 @@ async function loadTasks() {
             query = query.eq('status', 'pending');
         }
 
-        // Apply custom filters
+        // Apply custom filters from localStorage
         const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
+
         if (savedFilters.priorities && savedFilters.priorities.length > 0) {
             query = query.in('priority', savedFilters.priorities);
         }
+
         if (savedFilters.dueDateFrom) {
             query = query.gte('due_date', savedFilters.dueDateFrom);
         }
+
         if (savedFilters.dueDateTo) {
             query = query.lte('due_date', savedFilters.dueDateTo);
         }
+
         if (savedFilters.overdue) {
             query = query.lt('due_date', new Date().toISOString()).neq('status', 'completed');
         }
@@ -579,14 +700,26 @@ async function loadTasks() {
         } else if (currentSort === 'title') {
             query = query.order('title', { ascending: currentSortAsc });
         } else if (currentSort === 'priority') {
+            // Priority sorting: high > medium > low
             query = query.order('priority', { ascending: currentSortAsc });
         } else {
             query = query.order('created_at', { ascending: false });
         }
 
+        console.log('Executing query for user_id:', currentUserId, 'view:', currentView);
         const { data: tasks, error } = await query;
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase query error:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            throw error;
+        }
+
+        console.log('Loaded tasks:', tasks?.length || 0, tasks);
+
+        if (!tasks || tasks.length === 0) {
+            console.warn('No tasks found for user_id:', currentUserId);
+        }
 
         allTasks = tasks || [];
 
@@ -597,10 +730,22 @@ async function loadTasks() {
         renderTasks(tasks || []);
         updateNavCounts();
         updateFilterDisplay();
-
     } catch (error) {
         console.error('Error loading tasks:', error);
-        container.innerHTML = `<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Có lỗi xảy ra khi tải tasks</div>`;
+        console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+        });
+        const container = document.getElementById('tasksTableBody');
+        if (container) {
+            let errorMessage = 'Có lỗi xảy ra khi tải tasks';
+            if (error.message) {
+                errorMessage += `<br><small style="color: #999; margin-top: 8px; display: block;">${escapeHtml(error.message)}</small>`;
+            }
+            container.innerHTML = `<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">${errorMessage}</div>`;
+        }
     }
 }
 
@@ -611,9 +756,12 @@ async function loadUserDataForTasks(tasks) {
         if (task.user_id) userIds.add(task.user_id);
     });
 
+    // Filter out users we already have
     const missingUserIds = Array.from(userIds).filter(id => !allUsers[id]);
+
     if (missingUserIds.length === 0) return;
 
+    // Batch query all missing users at once
     const { data: users, error } = await supabaseClient
         .from('users')
         .select('*')
@@ -631,7 +779,7 @@ async function loadUserDataForTasks(tasks) {
     }
 }
 
-// Render tasks
+// Render tasks - Modern Card View
 function renderTasks(tasks) {
     const container = document.getElementById('tasksTableBody');
     if (!container) return;
@@ -653,16 +801,18 @@ function renderTasks(tasks) {
         return;
     }
 
-    let html = '';
-
     if (groupByCreator) {
+        // Group by creator
         const grouped = {};
         tasks.forEach(task => {
             const creatorId = task.user_id;
-            if (!grouped[creatorId]) grouped[creatorId] = [];
+            if (!grouped[creatorId]) {
+                grouped[creatorId] = [];
+            }
             grouped[creatorId].push(task);
         });
 
+        let html = '';
         Object.keys(grouped).forEach(creatorId => {
             const creator = allUsers[creatorId] || { full_name: 'Unknown User' };
             const creatorName = creator.full_name || creator.username || creator.email;
@@ -678,15 +828,17 @@ function renderTasks(tasks) {
             });
             html += `</div>`;
         });
+
+        container.innerHTML = html;
     } else {
-        html += `<div class="task-grid">`;
+        // No grouping
+        let html = `<div class="task-grid">`;
         tasks.forEach(task => {
             html += createTaskCardHtml(task);
         });
         html += `</div>`;
+        container.innerHTML = html;
     }
-
-    container.innerHTML = html;
 }
 
 function createTaskCardHtml(task) {
@@ -699,18 +851,80 @@ function createTaskCardHtml(task) {
             <div class="task-header">
                 <div class="task-priority ${priorityClass}">${getPriorityText(task.priority)}</div>
                 <div class="task-actions">
-                    <button class="btn-icon" onclick="openEditModal('${task.id}')" title="Edit">✏️</button>
-                    <button class="btn-icon delete-btn" onclick="deleteTask('${task.id}')" title="Delete">🗑️</button>
+                    <button class="btn-icon" onclick="openEditModal('${task.id}')" title="Edit"></button>
+                    <button class="btn-icon delete-btn" onclick="deleteTask('${task.id}')" title="Delete"></button>
                 </div>
             </div>
             <div class="task-title">${escapeHtml(task.title)}</div>
             <div class="task-desc">${escapeHtml(task.description || '')}</div>
             <div class="task-meta">
-                <div class="task-date">📅 ${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</div>
+                <div class="task-date"> ${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'No date'}</div>
                 <div class="task-status ${statusClass}">${getStatusText(task.status)}</div>
             </div>
             <div class="task-footer">
                 <label class="checkbox-container">
+                    <input type="checkbox" ${isCompleted ? 'checked' : ''} 
+                           onchange="handleTaskCheckboxChange('${task.id}', this.checked)">
+                    <span class="checkmark"></span>
+                    ${isCompleted ? 'Completed' : 'Mark as complete'}
+                </label>
+            </div>
+        </div>
+    `;
+}
+
+// New Task Modal Functions
+function openNewTaskModal() {
+    const modal = document.getElementById('newTaskModal');
+    if (modal) {
+        modal.style.display = 'block';
+        loadUsersForAssignment();
+    }
+}
+
+function closeNewTaskModal() {
+    const modal = document.getElementById('newTaskModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Load users for assignment dropdown
+async function loadUsersForAssignment() {
+    try {
+        const { data: users, error } = await supabaseClient
+            .from('users')
+            .select('id, username, full_name, email')
+            .order('username');
+
+        if (error) throw error;
+
+        const select = document.getElementById('taskAssignedTo');
+        if (select && users) {
+            select.innerHTML = '<option value="">Unassigned</option>' +
+                users.map(user => {
+                    const displayName = user.full_name || user.username || user.email;
+                    return `<option value="${user.id}">${escapeHtml(displayName)}</option>`;
+                }).join('');
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+    }
+}
+
+// Handle new task submission
+async function handleNewTask(e) {
+    e.preventDefault();
+
+    const title = document.getElementById('taskTitle').value.trim();
+    const description = document.getElementById('taskDescription').value.trim();
+    const priority = document.getElementById('taskPriority').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+    const assignedTo = document.getElementById('taskAssignedTo').value;
+
+    if (!title) {
+        toastService.warning('Vui l�ng nh?p ti�u d? task');
+        return;
     }
 
     try {
@@ -734,7 +948,7 @@ function createTaskCardHtml(task) {
 
         if (error) throw error;
 
-        toastService.success('Tạo task mới thành công! 🚀');
+        toastService.success('T?o task m?i th�nh c�ng! ');
         confettiService.explode();
         closeNewTaskModal();
         document.getElementById('newTaskForm').reset();
@@ -744,489 +958,24 @@ function createTaskCardHtml(task) {
 
     } catch (error) {
         console.error('Error creating task:', error);
-        toastService.error('Có lỗi xảy ra khi tạo task');
+        toastService.error('C� l?i x?y ra khi t?o task');
     }
 }
-
-// Update Navigation Counts
-async function updateNavCounts() {
-    try {
-        if (!currentUserId) return;
-
-        // Owned tasks
-        const { count: ownedCount } = await supabaseClient
-            .from('tasks')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', currentUserId)
-            .neq('status', 'completed');
-        updateBadge('nav-owned-count', ownedCount);
-
-        // Assigned tasks
-        const { count: assignedCount } = await supabaseClient
-            .from('tasks')
-            .select('*', { count: 'exact', head: true })
-            .eq('assigned_to', currentUserId)
-            .neq('status', 'completed');
-        updateBadge('nav-assigned-count', assignedCount);
-
-        // Completed tasks
-        const { count: completedCount } = await supabaseClient
-            .from('tasks')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', currentUserId)
-            .eq('status', 'completed');
-        updateBadge('nav-completed-count', completedCount);
-
-    } catch (error) {
-        console.error('Error updating nav counts:', error);
-    }
-}
-
-function updateBadge(id, count) {
-    const badge = document.getElementById(id);
-    if (badge) {
-        badge.textContent = count || 0;
-        badge.style.display = count > 0 ? 'inline-block' : 'none';
-    }
-}
-
-// Status Filter
-function toggleStatusFilter() {
-    const statusOptions = [null, 'ongoing', 'pending', 'completed'];
-    const statusLabels = ['All', 'Ongoing', 'Pending', 'Completed'];
-    const currentIndex = statusOptions.indexOf(currentStatusFilter);
-    const nextIndex = (currentIndex + 1) % statusOptions.length;
-
-    currentStatusFilter = statusOptions[nextIndex];
-    const statusText = document.getElementById('statusFilterText');
-    if (statusText) {
-        statusText.textContent = statusLabels[nextIndex];
-    }
-
-    loadTasks();
-}
-
-// Filter Modal
-function openFilterModal() {
-    const modal = document.getElementById('filterModal');
-    if (modal) {
-        modal.style.display = 'block';
-        loadSavedFilters();
-    }
-}
-
-function closeFilterModal() {
-    const modal = document.getElementById('filterModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function loadSavedFilters() {
-    const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
-
-    if (savedFilters.priorities) {
-        const select = document.getElementById('filterPriority');
-        if (select) {
-            Array.from(select.options).forEach(option => {
-                option.selected = savedFilters.priorities.includes(option.value);
-            });
-        }
-    }
-
-    if (savedFilters.dueDateFrom) {
-        document.getElementById('filterDueDateFrom').value = savedFilters.dueDateFrom;
-    }
-
-    if (savedFilters.dueDateTo) {
-        document.getElementById('filterDueDateTo').value = savedFilters.dueDateTo;
-    }
-
-    if (savedFilters.overdue) {
-        document.getElementById('filterOverdue').checked = savedFilters.overdue;
-    }
-}
-
-function applyFilters() {
-    const priorities = Array.from(document.getElementById('filterPriority').selectedOptions)
-        .map(option => option.value);
-    const dueDateFrom = document.getElementById('filterDueDateFrom').value;
-    const dueDateTo = document.getElementById('filterDueDateTo').value;
-    const overdue = document.getElementById('filterOverdue').checked;
-
-    const filters = {
-        priorities: priorities.length > 0 ? priorities : null,
-        dueDateFrom: dueDateFrom || null,
-        dueDateTo: dueDateTo || null,
-        overdue: overdue || false
-    };
-
-    localStorage.setItem('taskFilters', JSON.stringify(filters));
-
-    // Update filter text
-    const filterText = document.getElementById('filterText');
-    const activeFilters = [];
-    if (priorities.length > 0) activeFilters.push(`${ priorities.length } priority`);
-    if (dueDateFrom || dueDateTo) activeFilters.push('date');
-    if (overdue) activeFilters.push('overdue');
-
-    if (filterText) {
-        filterText.textContent = activeFilters.length > 0 ? `Filter(${ activeFilters.length })` : 'Filter';
-    }
-
-    closeFilterModal();
-    loadTasks();
-}
-
-function clearFilters() {
-    localStorage.removeItem('taskFilters');
-    document.getElementById('filterForm').reset();
-    const filterText = document.getElementById('filterText');
-    if (filterText) {
-        filterText.textContent = 'Filter';
-    }
-    loadTasks();
-}
-
-function updateFilterDisplay() {
-    const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
-    const activeFilters = [];
-    if (savedFilters.priorities && savedFilters.priorities.length > 0) {
-        activeFilters.push(`${ savedFilters.priorities.length } priority`);
-    }
-    if (savedFilters.dueDateFrom || savedFilters.dueDateTo) {
-        activeFilters.push('date');
-    }
-    if (savedFilters.overdue) {
-        activeFilters.push('overdue');
-    }
-
-    const filterText = document.getElementById('filterText');
-    if (filterText) {
-        filterText.textContent = activeFilters.length > 0 ? `Filter(${ activeFilters.length })` : 'Filter';
-    }
-}
-
-// Sort Menu
-function openSortMenu(event) {
-    if (event) {
-        event.stopPropagation();
-    }
-    const menu = document.getElementById('sortMenu');
-    if (menu) {
-        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    }
-}
-
-function setSort(sortBy, ascending) {
-    currentSort = sortBy;
-    currentSortAsc = ascending;
-
-    const sortText = document.getElementById('sortText');
-    if (sortText) {
-        const sortLabels = {
-            'due_date': 'Due Date',
-            'created_at': 'Created Date',
-            'title': 'Title',
-            'priority': 'Priority'
-        };
-        const arrow = ascending ? '↑' : '↓';
-        sortText.textContent = `Sort by: ${ sortLabels[sortBy] } ${ arrow } `;
-    }
-
-    // Close menu
-    const menu = document.getElementById('sortMenu');
-    if (menu) {
-        menu.style.display = 'none';
-    }
-
-    loadTasks();
-}
-
-// Group By Toggle
-function toggleGroupBy() {
-    groupByCreator = !groupByCreator;
-    const groupByText = document.getElementById('groupByText');
-    if (groupByText) {
-        groupByText.textContent = groupByCreator ? 'Group by: Creator' : 'No Grouping';
-    }
-    loadTasks();
-}
-
-// Customize Modal
-function openCustomizeModal() {
-    toastService.info('Customize feature coming soon!');
-}
-
-// Handle task checkbox change (complete/uncomplete)
-async function handleTaskCheckboxChange(taskId, isChecked) {
-    try {
-        if (isChecked) {
-            // Mark as completed
-            await completeTask(taskId);
-        } else {
-            // Mark as uncompleted (change back to pending)
-            await uncompleteTask(taskId);
-        }
-    } catch (error) {
-        console.error('Error handling task checkbox:', error);
-        toastService.error('Có lỗi xảy ra khi cập nhật task');
-    }
-}
-
-// Complete task
-async function completeTask(taskId) {
-    try {
-        console.log('Completing task:', taskId);
-
-        // Check if user is owner or assigned to this task
-        const { data: task, error: fetchError } = await supabaseClient
-            .from('tasks')
-            .select('user_id, assigned_to')
-            .eq('id', taskId)
-            .single();
-
-        if (fetchError || !task) {
-            throw new Error('Task not found');
-        }
-
-        // Only owner or assigned user can complete
-        if (task.user_id !== currentUserId && task.assigned_to !== currentUserId) {
-            throw new Error('Bạn không có quyền hoàn thành task này');
-        }
-
-        // Update task status to completed and set completed_at timestamp
-        const { error } = await supabaseClient
-            .from('tasks')
-            .update({
-                status: 'completed',
-                completed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', taskId);
-
-        if (error) {
-            console.error('Supabase error:', error);
-            throw error;
-        }
-
-        console.log('Task completed successfully, reloading tasks...');
-
-        // Task will be automatically hidden from views (except 'completed' view)
-        // because we filter out completed tasks in loadTasks()
-        await loadTasks();
-        await updateNavCounts();
-
-        // Show success message
-        console.log('Task completed and hidden from active views');
-        confettiService.explode();
-        toastService.success('Đã hoàn thành task! Xuất sắc! 🎉');
-    } catch (error) {
-        console.error('Error completing task:', error);
-        toastService.error('Có lỗi xảy ra khi cập nhật task: ' + (error.message || 'Unknown error'));
-        // Reload to reset checkbox state
-        await loadTasks();
-    }
-}
-
-// Uncomplete task (mark as pending)
-async function uncompleteTask(taskId) {
-    try {
-        console.log('Uncompleting task:', taskId);
-
-        // Check if user is owner or assigned to this task
-        const { data: task, error: fetchError } = await supabaseClient
-            .from('tasks')
-            .select('user_id, assigned_to')
-            .eq('id', taskId)
-            .single();
-
-        if (fetchError || !task) {
-            throw new Error('Task not found');
-        }
-
-        // Only owner or assigned user can uncomplete
-        if (task.user_id !== currentUserId && task.assigned_to !== currentUserId) {
-            throw new Error('Bạn không có quyền thay đổi trạng thái task này');
-        }
-
-        const { error } = await supabaseClient
-            .from('tasks')
-            .update({
-                status: 'pending',
-                completed_at: null,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', taskId);
-
-        if (error) throw error;
-
-        console.log('Task uncompleted successfully, reloading tasks...');
-        await loadTasks();
-        await updateNavCounts();
-    } catch (error) {
-        console.error('Error uncompleting task:', error);
-        toastService.error('Có lỗi xảy ra khi cập nhật task');
-        await loadTasks();
-    }
-}
-
-// Delete task - Only owner can delete
-async function deleteTask(taskId) {
-    if (!confirm('Bạn có chắc muốn xóa task này?')) {
-        return;
-    }
-
-    try {
-        // Check if user is owner
-        const { data: task, error: fetchError } = await supabaseClient
-            .from('tasks')
-            .select('user_id')
-            .eq('id', taskId)
-            .single();
-
-        if (fetchError || !task) {
-            throw new Error('Task not found');
-        }
-
-        // Only owner can delete
-        if (task.user_id !== currentUserId) {
-            throw new Error('Chỉ người tạo task mới có quyền xóa');
-        }
-
-        const { error } = await supabaseClient
-            .from('tasks')
-            .delete()
-            .eq('id', taskId)
-            .eq('user_id', currentUserId);
-
-        if (error) throw error;
-
-        await loadTasks();
-        await updateNavCounts();
-        toastService.success('Đã xóa task thành công');
-    } catch (error) {
-        console.error('Error deleting task:', error);
-        toastService.error('Có lỗi xảy ra khi xóa task');
-    }
-}
-
-// Open edit modal - Only owner can edit
-async function openEditModal(taskId) {
-    try {
-        // Check if user is owner
-        const { data: task, error } = await supabaseClient
-            .from('tasks')
-            .select('*')
-            .eq('id', taskId)
-            .single();
-
-        if (error || !task) {
-            throw new Error('Task not found');
-        }
-
-        // Only owner can edit
-        if (task.user_id !== currentUserId) {
-            toastService.warning('Chỉ người tạo task mới có quyền chỉnh sửa');
-            return;
-        }
-
-        document.getElementById('editTaskId').value = task.id;
-        document.getElementById('editTaskTitle').value = task.title;
-        document.getElementById('editTaskDescription').value = task.description || '';
-        document.getElementById('editTaskStatus').value = task.status;
-        document.getElementById('editTaskPriority').value = task.priority || 'medium';
-
-        if (task.due_date) {
-            const dueDate = new Date(task.due_date);
-            const localDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000);
-            document.getElementById('editTaskDueDate').value = localDate.toISOString().slice(0, 16);
-        } else {
-            document.getElementById('editTaskDueDate').value = '';
-        }
-
-        document.getElementById('editModal').style.display = 'block';
-    } catch (error) {
-        console.error('Error loading task:', error);
-        toastService.error('Có lỗi xảy ra khi tải thông tin task');
-    }
-
-}
-
-// Close modal
-function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
-}
-
-// Edit task
-async function handleEditTask(e) {
-    e.preventDefault();
-
-    const taskId = document.getElementById('editTaskId').value;
-    const title = document.getElementById('editTaskTitle').value.trim();
-    const description = document.getElementById('editTaskDescription').value.trim();
-    const status = document.getElementById('editTaskStatus').value;
-    const priority = document.getElementById('editTaskPriority').value;
-    const dueDate = document.getElementById('editTaskDueDate').value;
-
-    if (!title) {
-        toastService.warning('Vui lòng nhập tiêu đề task');
-        return;
-    }
-
-    try {
-        const updateData = {
-            title: title,
-            description: description || null,
-            status: status,
-            priority: priority,
-            due_date: dueDate || null
-        };
-
-        // Verify ownership before update
-        const { data: task, error: verifyError } = await supabaseClient
-            .from('tasks')
-            .select('user_id')
-            .eq('id', taskId)
-            .single();
-
-        if (verifyError || !task || task.user_id !== currentUserId) {
-            throw new Error('Bạn không có quyền chỉnh sửa task này');
-        }
-
-        const { error } = await supabaseClient
-            .from('tasks')
-            .update(updateData)
-            .eq('id', taskId)
-            .eq('user_id', currentUserId);
-
-        if (error) throw error;
-
-        closeModal();
-        await loadTasks();
-        await updateNavCounts();
-        toastService.success('Cập nhật task thành công');
-    } catch (error) {
-        console.error('Error updating task:', error);
-        toastService.error('Có lỗi xảy ra khi cập nhật task');
-    }
-}
-
 
 // Helper functions
 function getStatusText(status) {
     const statusMap = {
-        'pending': 'Đang chờ',
-        'in_progress': 'Đang làm',
-        'completed': 'Hoàn thành'
+        'pending': '�ang ch?',
+        'in_progress': '�ang l�m',
+        'completed': 'Ho�n th�nh'
     };
     return statusMap[status] || status;
 }
 
 function getPriorityText(priority) {
     const priorityMap = {
-        'low': 'Thấp',
-        'medium': 'Trung bình',
+        'low': 'Th?p',
+        'medium': 'Trung b�nh',
         'high': 'Cao'
     };
     return priorityMap[priority] || priority;
@@ -1236,211 +985,4 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-// Settings Modal
-function openSettings() {
-    document.getElementById('settingsModal').style.display = 'block';
-    loadNotificationSettings();
-    loadDarkModePreference();
-}
-
-function closeSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'none';
-}
-
-// Load notification settings
-async function loadNotificationSettings() {
-    try {
-        const { data: settings, error } = await supabaseClient
-            .from('notification_settings')
-            .select('*')
-            .eq('user_id', currentUserId)
-            .single();
-
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
-
-        if (settings) {
-            document.getElementById('emailNotifications').checked = settings.email_notifications;
-            document.getElementById('reminderBeforeDays').value = settings.reminder_before_days || 1;
-            document.getElementById('reminderBeforeHours').value = settings.reminder_before_hours || 24;
-        } else {
-            // Create default settings
-            const { data: newSettings } = await supabaseClient
-                .from('notification_settings')
-                .insert({
-                    user_id: currentUserId,
-                    email_notifications: true,
-                    reminder_before_hours: 24,
-                    reminder_before_days: 1
-                })
-                .select()
-                .single();
-
-            if (newSettings) {
-                document.getElementById('emailNotifications').checked = newSettings.email_notifications;
-                document.getElementById('reminderBeforeDays').value = newSettings.reminder_before_days;
-                document.getElementById('reminderBeforeHours').value = newSettings.reminder_before_hours;
-            }
-        }
-    } catch (error) {
-        console.error('Error loading settings:', error);
-    }
-}
-
-// Save notification settings
-async function handleSaveSettings(e) {
-    e.preventDefault();
-
-    const emailNotifications = document.getElementById('emailNotifications').checked;
-    const reminderBeforeDays = parseInt(document.getElementById('reminderBeforeDays').value) || 1;
-    const reminderBeforeHours = parseInt(document.getElementById('reminderBeforeHours').value) || 24;
-
-    try {
-        const { error } = await supabaseClient
-            .from('notification_settings')
-            .upsert({
-                user_id: currentUserId,
-                email_notifications: emailNotifications,
-                reminder_before_hours: reminderBeforeHours,
-                reminder_before_days: reminderBeforeDays,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id'
-            });
-
-        if (error) throw error;
-
-        toastService.success('Đã lưu cài đặt thành công!');
-        closeSettingsModal();
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        toastService.error('Có lỗi xảy ra khi lưu cài đặt');
-    }
-}
-
-// Check and send reminder emails (this would typically run on a server/cron job)
-async function checkAndSendReminders() {
-    try {
-        // Get all users with email notifications enabled and Google auth
-        const { data: users, error: usersError } = await supabaseClient
-            .from('users')
-            .select(`
-    id,
-        email,
-        auth_provider,
-        notification_settings(
-            email_notifications,
-            reminder_before_hours,
-            reminder_before_days
-        )
-            `)
-            .eq('auth_provider', 'google')
-            .eq('email_verified', true);
-
-        if (usersError) throw usersError;
-
-        for (const user of users || []) {
-            const settings = user.notification_settings?.[0];
-            if (!settings || !settings.email_notifications) continue;
-
-            // Get tasks with upcoming deadlines
-            const reminderTime = new Date();
-            reminderTime.setHours(reminderTime.getHours() + settings.reminder_before_hours);
-            reminderTime.setDate(reminderTime.getDate() + settings.reminder_before_days);
-
-            const { data: tasks, error: tasksError } = await supabaseClient
-                .from('tasks')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('status', 'pending')
-                .lte('due_date', reminderTime.toISOString())
-                .gt('due_date', new Date().toISOString());
-
-            if (tasksError) continue;
-
-            // Check if email already sent
-            for (const task of tasks || []) {
-                const { data: existingLog } = await supabaseClient
-                    .from('email_logs')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .eq('task_id', task.id)
-                    .eq('email_type', 'reminder')
-                    .gte('sent_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-                    .single();
-
-                if (!existingLog) {
-                    // Send email reminder
-                    await sendReminderEmail(user.email, task);
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error checking reminders:', error);
-    }
-}
-
-// Send reminder email (this needs to be implemented with an email service)
-async function sendReminderEmail(email, task) {
-    try {
-        // TODO: Implement actual email sending
-        // You can use:
-        // - Gmail API with your client secret
-        // - SendGrid
-        // - Resend
-        // - Supabase Edge Function with email service
-
-        // For now, just log it
-        console.log(`Would send email to ${ email } for task: ${ task.title } `);
-
-        // Log email sent
-        await supabaseClient
-            .from('email_logs')
-            .insert({
-                user_id: task.user_id,
-                task_id: task.id,
-                email_type: 'reminder',
-                status: 'sent'
-            });
-
-        // In production, you would call an email service here
-        // Example with Gmail API or email service
-    } catch (error) {
-        console.error('Error sending email:', error);
-        await supabaseClient
-            .from('email_logs')
-            .insert({
-                user_id: task.user_id,
-                task_id: task.id,
-                email_type: 'reminder',
-                status: 'failed',
-                error_message: error.message
-            });
-    }
-}
-
-// Logout - Simple and reliable
-function logout() {
-    console.log('Starting logout...');
-
-    // Clear localStorage first
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('user_data');
-
-    // Sign out from Supabase (don't wait for it)
-    if (typeof supabaseClient !== 'undefined' && supabaseClient.auth) {
-        supabaseClient.auth.signOut().catch(err => console.error('Sign out error:', err));
-    }
-
-    console.log('Redirecting to login...');
-
-    // Redirect immediately
-    window.location.href = 'index.html';
-}
-
-// Success message function (currently not used for logout)
-function showSuccessMessage(message) {
-    console.log('Success:', message);
 }
