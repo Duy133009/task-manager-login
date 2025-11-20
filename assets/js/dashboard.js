@@ -554,7 +554,7 @@ function switchView(view) {
 
 // Load tasks
 async function loadTasks() {
-    const container = document.getElementById('tasksTableBody');
+    const container = document.getElementById('taskContainer');
     if (!container) {
         console.error('Tasks container not found');
         return;
@@ -738,7 +738,7 @@ async function loadTasks() {
             hint: error.hint,
             code: error.code
         });
-        const container = document.getElementById('tasksTableBody');
+        const container = document.getElementById('taskContainer');
         if (container) {
             let errorMessage = 'CÃ³ lá»—i xáº£y ra khi táº£i tasks';
             if (error.message) {
@@ -781,7 +781,7 @@ async function loadUserDataForTasks(tasks) {
 
 // Render tasks - Modern Card View
 function renderTasks(tasks) {
-    const container = document.getElementById('tasksTableBody');
+    const container = document.getElementById('taskContainer');
     if (!container) return;
 
     // Check for Kanban view
@@ -1249,5 +1249,84 @@ function updateBadge(id, count) {
     if (badge) {
         badge.textContent = count || 0;
         badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+}
+
+
+// Update filter display text
+function updateFilterDisplay() {
+    const savedFilters = JSON.parse(localStorage.getItem('taskFilters') || '{}');
+    const activeFilters = [];
+    
+    if (savedFilters.priorities && savedFilters.priorities.length > 0) {
+        activeFilters.push(`${savedFilters.priorities.length} priority`);
+    }
+    if (savedFilters.dueDateFrom || savedFilters.dueDateTo) {
+        activeFilters.push('date');
+    }
+    if (savedFilters.overdue) {
+        activeFilters.push('overdue');
+    }
+
+    const filterText = document.getElementById('filterText');
+    if (filterText) {
+        filterText.textContent = activeFilters.length > 0 ? `Filter(${activeFilters.length})` : 'Filter';
+    }
+}
+
+// Toggle sidebar
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+    }
+}
+
+// Create new group
+function createNewGroup() {
+    toastService.info('Create new group feature coming soon!');
+}
+
+// Open settings
+function openSettings() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+// Close settings modal
+function closeSettingsModal() {
+    const modal = document.getElementById('settingsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Handle save settings
+async function handleSaveSettings(e) {
+    e.preventDefault();
+    
+    const darkMode = document.getElementById('darkModeToggle').checked;
+    const emailNotifications = document.getElementById('emailNotifications').checked;
+    const reminderBeforeDays = document.getElementById('reminderBeforeDays').value;
+    const reminderBeforeHours = document.getElementById('reminderBeforeHours').value;
+    
+    localStorage.setItem('darkMode', darkMode.toString());
+    localStorage.setItem('emailNotifications', emailNotifications.toString());
+    localStorage.setItem('reminderBeforeDays', reminderBeforeDays);
+    localStorage.setItem('reminderBeforeHours', reminderBeforeHours);
+    
+    applyDarkMode(darkMode);
+    
+    toastService.success('Ðã luu cài d?t thành công!');
+    closeSettingsModal();
+}
+
+// Close profile modal
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) {
+        modal.style.display = 'none';
     }
 }
