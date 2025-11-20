@@ -986,3 +986,268 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// Handle task checkbox change (complete/uncomplete)
+async function handleTaskCheckboxChange(taskId, isChecked) {
+    try {
+        if (isChecked) {
+            await completeTask(taskId);
+        } else {
+            await uncompleteTask(taskId);
+        }
+    } catch (error) {
+        console.error('Error handling task checkbox:', error);
+        toastService.error('Có l?i x?y ra khi c?p nh?t task');
+    }
+}
+
+// Complete task
+async function completeTask(taskId) {
+    try {
+        console.log('Completing task:', taskId);
+
+        const { data: task, error: fetchError } = await supabaseClient
+            .from('tasks')
+            .select('user_id, assigned_to')
+            .eq('id', taskId)
+            .single();
+
+        if (fetchError || !task) {
+            throw new Error('Task not found');
+        }
+
+        if (task.user_id !== currentUserId && task.assigned_to !== currentUserId) {
+            throw new Error('B?n không có quy?n hoàn thành task này');
+        }
+
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update({
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', taskId);
+
+        if (error) throw error;
+
+        await loadTasks();
+        await updateNavCounts();
+        confettiService.explode();
+        toastService.success('Ğã hoàn thành task! ');
+    } catch (error) {
+        console.error('Error completing task:', error);
+        toastService.error('Có l?i x?y ra: ' + error.message);
+        await loadTasks();
+    }
+}
+
+// Uncomplete task
+async function uncompleteTask(taskId) {
+    try {
+        const { data: task, error: fetchError } = await supabaseClient
+            .from('tasks')
+            .select('user_id, assigned_to')
+            .eq('id', taskId)
+            .single();
+
+        if (fetchError || !task) {
+            throw new Error('Task not found');
+        }
+
+        if (task.user_id !== currentUserId && task.assigned_to !== currentUserId) {
+            throw new Error('B?n không có quy?n thay d?i task này');
+        }
+
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update({
+                status: 'pending',
+                completed_at: null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', taskId);
+
+        if (error) throw error;
+
+        await loadTasks();
+        await updateNavCounts();
+    } catch (error) {
+        console.error('Error uncompleting task:', error);
+        toastService.error('Có l?i x?y ra: ' + error.message);
+        await loadTasks();
+    }
+}
+
+// Delete task
+async function deleteTask(taskId) {
+    if (!confirm('B?n có ch?c mu?n xóa task này?')) {
+        return;
+    }
+
+    try {
+        const { data: task, error: fetchError } = await supabaseClient
+            .from('tasks')
+            .select('user_id')
+            .eq('id', taskId)
+            .single();
+
+        if (fetchError || !task) {
+            throw new Error('Task not found');
+        }
+
+        if (task.user_id !== currentUserId) {
+            throw new Error('Ch? ngu?i t?o task m?i có quy?n xóa');
+        }
+
+        const { error } = await supabaseClient
+            .from('tasks')
+            .delete()
+            .eq('id', taskId)
+            .eq('user_id', currentUserId);
+
+        if (error) throw error;
+
+        await loadTasks();
+        await updateNavCounts();
+        toastService.success('Ğã xóa task thành công');
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        toastService.error('Có l?i x?y ra: ' + error.message);
+    }
+}
+
+// Open edit modal
+async function openEditModal(taskId) {
+    try {
+        const { data: task, error } = await supabaseClient
+            .from('tasks')
+            .select('*')
+            .eq('id', taskId)
+            .single();
+
+        if (error || !task) {
+            throw new Error('Task not found');
+        }
+
+        if (task.user_id !== currentUserId) {
+            toastService.warning('Ch? ngu?i t?o task m?i có quy?n ch?nh s?a');
+            return;
+        }
+
+        document.getElementById('editTaskId').value = task.id;
+        document.getElementById('editTaskTitle').value = task.title;
+        document.getElementById('editTaskDescription').value = task.description || '';
+        document.getElementById('editTaskStatus').value = task.status;
+        document.getElementById('editTaskPriority').value = task.priority || 'medium';
+
+        if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            const localDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000);
+            document.getElementById('editTaskDueDate').value = localDate.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('editTaskDueDate').value = '';
+        }
+
+        document.getElementById('editModal').style.display = 'block';
+    } catch (error) {
+        console.error('Error loading task:', error);
+        toastService.error('Có l?i x?y ra khi t?i thông tin task');
+    }
+}
+
+// Close edit modal
+function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+// Handle edit task
+async function handleEditTask(e) {
+    e.preventDefault();
+
+    const taskId = document.getElementById('editTaskId').value;
+    const title = document.getElementById('editTaskTitle').value.trim();
+    const description = document.getElementById('editTaskDescription').value.trim();
+    const status = document.getElementById('editTaskStatus').value;
+    const priority = document.getElementById('editTaskPriority').value;
+    const dueDate = document.getElementById('editTaskDueDate').value;
+
+    if (!title) {
+        toastService.warning('Vui lòng nh?p tiêu d? task');
+        return;
+    }
+
+    try {
+        const { data: task, error: verifyError } = await supabaseClient
+            .from('tasks')
+            .select('user_id')
+            .eq('id', taskId)
+            .single();
+
+        if (verifyError || !task || task.user_id !== currentUserId) {
+            throw new Error('B?n không có quy?n ch?nh s?a task này');
+        }
+
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update({
+                title,
+                description: description || null,
+                status,
+                priority,
+                due_date: dueDate || null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', taskId)
+            .eq('user_id', currentUserId);
+
+        if (error) throw error;
+
+        closeModal();
+        await loadTasks();
+        await updateNavCounts();
+        toastService.success('C?p nh?t task thành công');
+    } catch (error) {
+        console.error('Error updating task:', error);
+        toastService.error('Có l?i x?y ra: ' + error.message);
+    }
+}
+
+// Update navigation counts
+async function updateNavCounts() {
+    try {
+        if (!currentUserId) return;
+
+        const { count: ownedCount } = await supabaseClient
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', currentUserId)
+            .neq('status', 'completed');
+        updateBadge('nav-owned-count', ownedCount);
+
+        const { count: assignedCount } = await supabaseClient
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('assigned_to', currentUserId)
+            .neq('status', 'completed');
+        updateBadge('nav-assigned-count', assignedCount);
+
+        const { count: completedCount } = await supabaseClient
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', currentUserId)
+            .eq('status', 'completed');
+        updateBadge('nav-completed-count', completedCount);
+
+    } catch (error) {
+        console.error('Error updating nav counts:', error);
+    }
+}
+
+function updateBadge(id, count) {
+    const badge = document.getElementById(id);
+    if (badge) {
+        badge.textContent = count || 0;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+}
