@@ -223,7 +223,8 @@
                     </div>
                     <div class="form-group">
                         <label for="taskDescription">Description</label>
-                        <textarea id="taskDescription" name="taskDescription" rows="4" placeholder="Enter task description"></textarea>
+                        <textarea id="taskDescription" name="taskDescription" rows="4"
+                            placeholder="Enter task description"></textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -255,8 +256,7 @@
                     </div>
                     <div class="form-group">
                         <label for="taskAssignedTo">Assign To (Optional)</label>
-                        <select id="taskAssignedTo"
-                            name="taskAssignedTo"
+                        <select id="taskAssignedTo" name="taskAssignedTo"
                             style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; background: var(--bg-primary); color: var(--text-primary);">
                             <option value="">-- No one (unassigned) --</option>
                             <!-- Will be populated with users -->
@@ -420,7 +420,157 @@
             </div>
         </div>
 
-        <!-- <script src="assets/js/dashboard.js"></script> -->
+        <!-- Filter Modal -->
+        <div id="filterModal" class="modal">
+            <div class="modal-content" style="max-width: 500px;">
+                <span class="close" onclick="closeFilterModal()">&times;</span>
+                <h2>🔍 Filter Tasks</h2>
+                <form id="filterForm">
+                    <div class="form-group">
+                        <label for="filterPriority">Priority</label>
+                        <select id="filterPriority" multiple
+                            style="height: 100px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                        <small style="color: #666; font-size: 12px;">Hold Ctrl/Cmd to select multiple</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="filterDueDateFrom">Due Date From</label>
+                        <input type="date" id="filterDueDateFrom"
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="filterDueDateTo">Due Date To</label>
+                        <input type="date" id="filterDueDateTo"
+                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="filterOverdue">
+                            <span>Show overdue tasks only</span>
+                        </label>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeFilterModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Profile Modal -->
+        <div id="profileModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeProfileModal()">&times;</span>
+                <h2>👤 Edit Profile</h2>
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label for="profileFullName">Full Name *</label>
+                        <input type="text" id="profileFullName" required placeholder="Enter full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="profileUsername">Username</label>
+                        <input type="text" id="profileUsername" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="form-group">
+                        <label for="profileEmail">Email</label>
+                        <input type="email" id="profileEmail" readonly style="background: #f5f5f5;">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content settings-modal">
+                <div class="settings-header">
+                    <div class="settings-title">
+                        <i class='bx bx-cog'></i>
+                        <h2>Settings</h2>
+                    </div>
+                    <button class="settings-close" onclick="closeSettingsModal()">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <form id="settingsForm">
+                    <!-- Appearance Section -->
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">Giao Diện</h3>
+
+                        <div class="settings-item">
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                                <div class="toggle-label">
+                                    <div class="toggle-info">
+                                        <span class="toggle-title">Chế độ tối (Dark Mode)</span>
+                                        <span class="toggle-description">Bật/tắt giao diện tối để bảo vệ mắt khi làm
+                                            việc
+                                            vào ban đêm</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <div class="toggle-slider"></div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Email Notifications Section -->
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">Thông Báo Email</h3>
+
+                        <div class="settings-item">
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="emailNotifications">
+                                <div class="toggle-label">
+                                    <div class="toggle-info">
+                                        <span class="toggle-title">Enable email reminders</span>
+                                        <span class="toggle-description">Nhận thông báo nhắc nhở qua email</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <div class="toggle-slider"></div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="settings-item">
+                            <label class="settings-input-label">
+                                <span class="input-title">Remind before (days)</span>
+                                <input type="number" id="reminderBeforeDays" class="settings-input" min="0" max="30"
+                                    value="1">
+                            </label>
+                        </div>
+
+                        <div class="settings-item">
+                            <label class="settings-input-label">
+                                <span class="input-title">Remind before (hours)</span>
+                                <input type="number" id="reminderBeforeHours" class="settings-input" min="0" max="23"
+                                    value="24">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Modal Actions -->
+                    <div class="settings-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Load Dashboard Script -->
+        <script src="assets/js/dashboard.js"></script>
+
 </body>
 
 </html>
