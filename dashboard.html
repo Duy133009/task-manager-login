@@ -1,18 +1,25 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tasks - Dashboard</title>
-    <link rel="stylesheet" href="assets/css/dashboard.css">
-    <!-- Google Fonts for Vietnamese Support -->
+    <link rel="stylesheet" href="assets/css/dashboard.css?v=2.0">
+    <link rel="stylesheet" href="assets/css/kanban.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Boxicons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 
-    <!-- Supabase Configuration for Production -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+
+    <!-- Supabase Configuration -->
     <script>
         window.SUPABASE_URL = 'https://hiojtrjfatfxbffrihnx.supabase.co';
         window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhpb2p0cmpmYXRmeGJmZnJpaG54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1Njk1NjEsImV4cCI6MjA3ODE0NTU2MX0.HuCpZ2HaNrPXrh6mGR9aH6VGQXEQyDFHzP3_ep9f8Eg';
@@ -48,6 +55,7 @@
     <script src="assets/js/controllers/AuthController.js"></script>
     <script src="assets/js/controllers/TaskController.js"></script>
     <script src="assets/js/controllers/KanbanController.js"></script>
+    <script src="assets/js/controllers/GanttController.js"></script>
 
     <!-- Load Utils -->
     <script src="assets/js/utils/validation.js"></script>
@@ -57,523 +65,312 @@
 </head>
 
 <body>
-    <!-- Top Header Bar -->
-    <div class="top-header">
-        <div class="header-left">
-            <button class="hamburger-menu" onclick="toggleSidebar()">☰</button>
-            <h1 class="page-title">Tasks</h1>
-            <button class="ellipsis-btn">⋯</button>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo-details">
+            <i class='bx bxl-c-plus-plus icon'></i>
+            <div class="logo_name">TaskMgr</div>
+            <i class='bx bx-menu' id="btn"></i>
         </div>
-        <div class="header-right">
-            <button class="btn-new-task" onclick="openNewTaskModal()">
-                New Task <span class="dropdown-arrow">▼</span>
-            </button>
-            <button class="layout-btn" title="Layout options">⊞</button>
-            <button class="btn-logout" onclick="logout()" title="Đăng xuất">
-                <span style="margin-right: 6px;">🚪</span>
-                <span>Đăng Xuất</span>
-            </button>
-            <div class="window-controls">
-                <button class="window-btn minimize">−</button>
-                <button class="window-btn maximize">□</button>
-                <button class="window-btn close">×</button>
+        <ul class="nav-list">
+            <li>
+                <a href="#" class="active" data-filter="all">
+                    <i class='bx bx-grid-alt'></i>
+                    <span class="links_name">All Tasks</span>
+                </a>
+                <span class="tooltip">All Tasks</span>
+            </li>
+            <li>
+                <a href="#" data-filter="my-tasks">
+                    <i class='bx bx-user'></i>
+                    <span class="links_name">My Tasks</span>
+                </a>
+                <span class="tooltip">My Tasks</span>
+            </li>
+            <li>
+                <a href="#" data-filter="assigned">
+                    <i class='bx bx-user-pin'></i>
+                    <span class="links_name">Assigned</span>
+                </a>
+                <span class="tooltip">Assigned</span>
+            </li>
+            <li>
+                <a href="#" data-filter="subscribed">
+                    <i class='bx bx-bell'></i>
+                    <span class="links_name">Subscribed</span>
+                </a>
+                <span class="tooltip">Subscribed</span>
+            </li>
+        </ul>
+    </div>
+
+    <section class="home-section">
+        <!-- Top Header Bar -->
+        <div class="top-header">
+            <div class="header-left">
+                <button class="hamburger-menu" onclick="toggleSidebar()">
+                    <i class='bx bx-menu'></i>
+                </button>
+                <h1 class="page-title">Tasks</h1>
             </div>
+            <div class="header-right">
+                <button class="btn-new-task" onclick="openNewTaskModal()">
+                    <i class='bx bx-plus'></i> New Task
+                </button>
+                <div class="sort-group">
+                    <button class="sort-btn" onclick="openSortMenu(event)">
+                        <i class='bx bx-sort-alt-2'></i> Sort
+                    </button>
+                    <div id="sortMenu" class="dropdown-menu" style="display: none;">
+                        <div class="dropdown-item" onclick="setSort('dueDate', true)">Due Date (Asc)</div>
+                        <div class="dropdown-item" onclick="setSort('dueDate', false)">Due Date (Desc)</div>
+                        <div class="dropdown-item" onclick="setSort('priority', true)">Priority (Low-High)</div>
+                        <div class="dropdown-item" onclick="setSort('priority', false)">Priority (High-Low)</div>
+                    </div>
+                </div>
+                <button class="filter-btn" onclick="openFilterModal()">
+                    <i class='bx bx-filter'></i> Filter
+                </button>
+                <button class="window-btn" onclick="openSettings()">
+                    <i class='bx bx-cog'></i>
+                </button>
+                <button class="window-btn" onclick="openProfileModal()">
+                    <i class='bx bx-user'></i>
+                </button>
+                <button class="btn-logout" onclick="logout()">
+                    <i class='bx bx-log-out'></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Task Statistics -->
+            <div class="task-stats" id="taskStats">
+                <!-- Stats injected by JS -->
+            </div>
+
+            <!-- View Toolbar -->
+            <div class="view-toolbar"
+                style="margin: 24px 0; display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="section-title" style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Task
+                    List</h2>
+                <div class="view-switcher"
+                    style="display: flex; gap: 8px; background: var(--bg-secondary); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <button class="tab-btn active" data-view="list"
+                        style="border: none; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); transition: all 0.2s;">
+                        <i class='bx bx-list-ul'></i> List
+                    </button>
+                    <button class="tab-btn" data-view="kanban"
+                        style="border: none; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); transition: all 0.2s;">
+                        <i class='bx bx-grid-alt'></i> Kanban
+                    </button>
+                    <button class="tab-btn" data-view="gantt"
+                        style="border: none; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); transition: all 0.2s;">
+                        <i class='bx bx-time-five'></i> Gantt
+                    </button>
+                </div>
+            </div>
+
+            <!-- Task Grid / Kanban Board / Gantt -->
+            <div id="tasksTableBody" class="task-cards">
+                <!-- Tasks injected by JS -->
+            </div>
+        </main>
+    </section>
+
+    <!-- New Task Modal -->
+    <div id="newTaskModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeNewTaskModal()">&times;</span>
+            <h2>Create New Task</h2>
+            <form id="newTaskForm">
+                <div class="form-group">
+                    <label for="taskTitle">Title *</label>
+                    <input type="text" id="taskTitle" name="taskTitle" required placeholder="What needs to be done?">
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Description</label>
+                    <textarea id="taskDescription" name="taskDescription" rows="3"
+                        placeholder="Add details..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskPriority">Priority</label>
+                        <select id="taskPriority" name="taskPriority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDueDate">Due Date</label>
+                        <input type="date" id="taskDueDate" name="taskDueDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="taskAssignedTo">Assign To</label>
+                    <select id="taskAssignedTo" name="taskAssignedTo">
+                        <option value="">Select User</option>
+                        <!-- Users will be populated here -->
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Create Task</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeNewTaskModal()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="dashboard-container">
-        <!-- Left Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <!-- Main Navigation -->
-            <div class="nav-section">
-                <div class="nav-item active" data-view="owned">
-                    <span>Owned</span>
-                    <span class="nav-count" id="ownedCount">42</span>
+    <!-- Filter Modal -->
+    <div id="filterModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close" onclick="closeFilterModal()">&times;</span>
+            <h2>🔍 Filter Tasks</h2>
+            <form id="filterForm">
+                <div class="form-group">
+                    <label for="filterPriority">Priority</label>
+                    <select id="filterPriority" multiple
+                        style="height: 100px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                    <small style="color: #666; font-size: 12px;">Hold Ctrl/Cmd to select multiple</small>
                 </div>
-                <div class="nav-item" data-view="subscribed">
-                    <span>Subscribed</span>
-                    <span class="nav-count" id="subscribedCount">0</span>
+                <div class="form-group">
+                    <label for="filterDueDateFrom">Due Date From</label>
+                    <input type="date" id="filterDueDateFrom"
+                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
-                <div class="nav-item" data-view="activities">
-                    <span>Activities</span>
+                <div class="form-group">
+                    <label for="filterDueDateTo">Due Date To</label>
+                    <input type="date" id="filterDueDateTo"
+                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
-            </div>
-
-            <!-- Quick Access -->
-            <div class="nav-section">
-                <div class="section-header">
-                    <span>Quick Access</span>
-                    <button class="toggle-btn">▼</button>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterOverdue">
+                        <span>Show overdue tasks only</span>
+                    </label>
                 </div>
-                <div class="nav-item" data-view="all">
-                    <span>All Tasks</span>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeFilterModal()">Cancel</button>
                 </div>
-                <div class="nav-item" data-view="created">
-                    <span>Created</span>
-                </div>
-                <div class="nav-item" data-view="assigned">
-                    <span>Assigned</span>
-                </div>
-                <div class="nav-item" data-view="completed">
-                    <span>Completed</span>
-                </div>
-            </div>
-
-            <!-- Task List -->
-            <div class="nav-section">
-                <div class="section-header">
-                    <span>Task List</span>
-                    <button class="add-btn" onclick="openNewTaskModal()">+</button>
-                </div>
-            </div>
-
-            <!-- New Group -->
-            <div class="nav-section">
-                <div class="nav-item new-group" onclick="createNewGroup()">
-                    <span>+ New Group</span>
-                </div>
-            </div>
-
-            <!-- User Section -->
-            <div class="nav-section" style="margin-top: auto; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-                <div class="nav-item" onclick="openProfileModal()" style="cursor: pointer;">
-                    <span>👤 Profile</span>
-                </div>
-                <div class="nav-item" onclick="openSettings()" style="cursor: pointer;">
-                    <span>⚙️ Settings</span>
-                </div>
-                <div class="nav-item logout-item" onclick="logout()" style="cursor: pointer; color: #dc3545;">
-                    <span>🚪 Đăng Xuất</span>
-                </div>
-            </div>
+            </form>
         </div>
+    </div>
 
-        <!-- Main Content Area -->
-        <div class="main-content">
-            <!-- Content Header -->
-            <div class="content-header">
-                <h2 class="content-title" id="contentTitle">Owned</h2>
-
-                <!-- View Tabs -->
-                <div class="view-tabs">
-                    <button class="tab-btn active" data-view="list">List</button>
-                    <button class="tab-btn" data-view="kanban">Kanban</button>
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            <h2>👤 Edit Profile</h2>
+            <form id="profileForm">
+                <div class="form-group">
+                    <label for="profileFullName">Full Name *</label>
+                    <input type="text" id="profileFullName" required placeholder="Enter full name">
                 </div>
-            </div>
+                <div class="form-group">
+                    <label for="profileUsername">Username</label>
+                    <input type="text" id="profileUsername" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label for="profileEmail">Email</label>
+                    <input type="email" id="profileEmail" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-            <!-- Action Bar -->
-            <div class="action-bar">
-                <button class="btn-new-task-small" onclick="openNewTaskModal()">+ New Task</button>
-                <button class="status-btn" id="statusFilterBtn" onclick="toggleStatusFilter()">
-                    <span class="status-icon">🔄</span>
-                    <span id="statusFilterText">All</span>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content settings-modal">
+            <div class="settings-header">
+                <div class="settings-title">
+                    <i class='bx bx-cog'></i>
+                    <h2>Settings</h2>
+                </div>
+                <button class="settings-close" onclick="closeSettingsModal()">
+                    <i class='bx bx-x'></i>
                 </button>
-                <button class="filter-btn" onclick="openFilterModal()">
-                    <span class="filter-icon">🔍</span>
-                    <span id="filterText">Filter</span>
-                </button>
-                <div class="sort-group" onclick="openSortMenu(event)" style="cursor: pointer; position: relative;">
-                    <span class="sort-icon">⇅</span>
-                    <span id="sortText">Sort by: Due Date</span>
-                    <div id="sortMenu" class="dropdown-menu" style="display: none;">
-                        <div class="dropdown-item" onclick="setSort('due_date', true)">
-                            <span>Due Date ↑</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('due_date', false)">
-                            <span>Due Date ↓</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('created_at', false)">
-                            <span>Created Date ↓</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('created_at', true)">
-                            <span>Created Date ↑</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('title', true)">
-                            <span>Title A-Z</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('title', false)">
-                            <span>Title Z-A</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('priority', false)">
-                            <span>Priority (High to Low)</span>
-                        </div>
-                        <div class="dropdown-item" onclick="setSort('priority', true)">
-                            <span>Priority (Low to High)</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="group-by" onclick="toggleGroupBy()" style="cursor: pointer;">
-                    <span class="group-icon">📊</span>
-                    <span id="groupByText">Group by: Creator</span>
-                </div>
             </div>
 
-            <!-- Tasks Container -->
-            <div class="tasks-overview">
-                <div id="taskStats" class="task-stats"></div>
-                <div id="taskContainer" class="task-cards"></div>
-            </div>
-        </div>
+            <form id="settingsForm">
+                <!-- Appearance Section -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Appearance</h3>
 
-        <!-- New Task Modal -->
-        <div id="newTaskModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeNewTaskModal()">&times;</span>
-                <h2>New Task</h2>
-                <form id="newTaskForm">
-                    <div class="form-group">
-                        <label for="taskTitle">Task Title *</label>
-                        <input type="text" id="taskTitle" name="taskTitle" required placeholder="Enter task title">
-                    </div>
-                    <div class="form-group">
-                        <label for="taskDescription">Description</label>
-                        <textarea id="taskDescription" name="taskDescription" rows="4"
-                            placeholder="Enter task description"></textarea>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="taskStartDate">Start Date</label>
-                            <input type="date" id="taskStartDate" name="taskStartDate">
-                        </div>
-                        <div class="form-group">
-                            <label for="taskDueDate">Due Date</label>
-                            <input type="date" id="taskDueDate" name="taskDueDate">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="taskPriority">Priority</label>
-                            <select id="taskPriority" name="taskPriority">
-                                <option value="low">Low</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="taskStatus">Status</label>
-                            <select id="taskStatus" name="taskStatus">
-                                <option value="pending" selected>Pending</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="taskAssignedTo">Assign To (Optional)</label>
-                        <select id="taskAssignedTo" name="taskAssignedTo"
-                            style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; background: var(--bg-primary); color: var(--text-primary);">
-                            <option value="">-- No one (unassigned) --</option>
-                            <!-- Will be populated with users -->
-                        </select>
-                        <small style="color: var(--text-secondary); font-size: 12px;">Select a user to assign this task
-                            to</small>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-primary">Create Task</button>
-                        <button type="button" class="btn btn-secondary" onclick="closeNewTaskModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Filter Modal -->
-        <div id="filterModal" class="modal">
-            <div class="modal-content" style="max-width: 500px;">
-                <span class="close" onclick="closeFilterModal()">&times;</span>
-                <h2>🔍 Filter Tasks</h2>
-                <form id="filterForm">
-                    <div class="form-group">
-                        <label for="filterPriority">Priority</label>
-                        <select id="filterPriority" multiple
-                            style="height: 100px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                        <small style="color: #666; font-size: 12px;">Hold Ctrl/Cmd to select multiple</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="filterDueDateFrom">Due Date From</label>
-                        <input type="date" id="filterDueDateFrom"
-                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="filterDueDateTo">Due Date To</label>
-                        <input type="date" id="filterDueDateTo"
-                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="filterOverdue">
-                            <span>Show overdue tasks only</span>
+                    <div class="settings-item">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+                            <div class="toggle-label">
+                                <div class="toggle-info">
+                                    <span class="toggle-title">Dark Mode</span>
+                                    <span class="toggle-description">Enable dark theme for low-light environments</span>
+                                </div>
+                                <div class="toggle-switch">
+                                    <div class="toggle-slider"></div>
+                                </div>
+                            </div>
                         </label>
                     </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
-                        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear</button>
-                        <button type="button" class="btn btn-secondary" onclick="closeFilterModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Profile Modal -->
-        <div id="profileModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeProfileModal()">&times;</span>
-                <h2>👤 Edit Profile</h2>
-                <form id="profileForm">
-                    <div class="form-group">
-                        <label for="profileFullName">Full Name *</label>
-                        <input type="text" id="profileFullName" required placeholder="Enter full name">
-                    </div>
-                    <div class="form-group">
-                        <label for="profileUsername">Username</label>
-                        <input type="text" id="profileUsername" readonly style="background: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label for="profileEmail">Email</label>
-                        <input type="email" id="profileEmail" readonly style="background: #f5f5f5;">
-                    </div>
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-primary">Save</button>
-                        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Settings Modal -->
-        <div id="settingsModal" class="modal">
-            <div class="modal-content settings-modal">
-                <div class="settings-header">
-                    <div class="settings-title">
-                        <i class='bx bx-cog'></i>
-                        <h2>Settings</h2>
-                    </div>
-                    <button class="settings-close" onclick="closeSettingsModal()">
-                        <i class='bx bx-x'></i>
-                    </button>
                 </div>
 
-                <form id="settingsForm">
-                    <!-- Appearance Section -->
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">Giao Diện</h3>
+                <!-- Email Notifications Section -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title">Email Notifications</h3>
 
-                        <div class="settings-item">
-                            <label class="settings-toggle">
-                                <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
-                                <div class="toggle-label">
-                                    <div class="toggle-info">
-                                        <span class="toggle-title">Chế độ tối (Dark Mode)</span>
-                                        <span class="toggle-description">Bật/tắt giao diện tối để bảo vệ mắt khi làm
-                                            việc
-                                            vào ban đêm</span>
-                                    </div>
-                                    <div class="toggle-switch">
-                                        <div class="toggle-slider"></div>
-                                    </div>
+                    <div class="settings-item">
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="emailNotifications">
+                            <div class="toggle-label">
+                                <div class="toggle-info">
+                                    <span class="toggle-title">Enable email reminders</span>
+                                    <span class="toggle-description">Receive task reminders via email</span>
                                 </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Email Notifications Section -->
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">Thông Báo Email</h3>
-
-                        <div class="settings-item">
-                            <label class="settings-toggle">
-                                <input type="checkbox" id="emailNotifications">
-                                <div class="toggle-label">
-                                    <div class="toggle-info">
-                                        <span class="toggle-title">Enable email reminders</span>
-                                        <span class="toggle-description">Nhận thông báo nhắc nhở qua email</span>
-                                    </div>
-                                    <div class="toggle-switch">
-                                        <div class="toggle-slider"></div>
-                                    </div>
+                                <div class="toggle-switch">
+                                    <div class="toggle-slider"></div>
                                 </div>
-                            </label>
-                        </div>
-
-                        <div class="settings-item">
-                            <label class="settings-input-label">
-                                <span class="input-title">Remind before (days)</span>
-                                <input type="number" id="reminderBeforeDays" class="settings-input" min="0" max="30"
-                                    value="1">
-                            </label>
-                        </div>
-
-                        <div class="settings-item">
-                            <label class="settings-input-label">
-                                <span class="input-title">Remind before (hours)</span>
-                                <input type="number" id="reminderBeforeHours" class="settings-input" min="0" max="23"
-                                    value="24">
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Modal Actions -->
-                    <div class="settings-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Filter Modal -->
-        <div id="filterModal" class="modal">
-            <div class="modal-content" style="max-width: 500px;">
-                <span class="close" onclick="closeFilterModal()">&times;</span>
-                <h2>🔍 Filter Tasks</h2>
-                <form id="filterForm">
-                    <div class="form-group">
-                        <label for="filterPriority">Priority</label>
-                        <select id="filterPriority" multiple
-                            style="height: 100px; width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                        <small style="color: #666; font-size: 12px;">Hold Ctrl/Cmd to select multiple</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="filterDueDateFrom">Due Date From</label>
-                        <input type="date" id="filterDueDateFrom"
-                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="filterDueDateTo">Due Date To</label>
-                        <input type="date" id="filterDueDateTo"
-                            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="filterOverdue">
-                            <span>Show overdue tasks only</span>
+                            </div>
                         </label>
                     </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
-                        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear</button>
-                        <button type="button" class="btn btn-secondary" onclick="closeFilterModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
 
-        <!-- Profile Modal -->
-        <div id="profileModal" class="modal">
-            <div class="modal-content">
-                <span class="close" onclick="closeProfileModal()">&times;</span>
-                <h2>👤 Edit Profile</h2>
-                <form id="profileForm">
-                    <div class="form-group">
-                        <label for="profileFullName">Full Name *</label>
-                        <input type="text" id="profileFullName" required placeholder="Enter full name">
+                    <div class="settings-item">
+                        <label class="settings-input-label">
+                            <span class="input-title">Remind before (days)</span>
+                            <input type="number" id="reminderBeforeDays" class="settings-input" min="0" max="30"
+                                value="1">
+                        </label>
                     </div>
-                    <div class="form-group">
-                        <label for="profileUsername">Username</label>
-                        <input type="text" id="profileUsername" readonly style="background: #f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label for="profileEmail">Email</label>
-                        <input type="email" id="profileEmail" readonly style="background: #f5f5f5;">
-                    </div>
-                    <div class="modal-actions">
-                        <button type="submit" class="btn btn-primary">Save</button>
-                        <button type="button" class="btn btn-secondary" onclick="closeProfileModal()">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
 
-        <!-- Settings Modal -->
-        <div id="settingsModal" class="modal">
-            <div class="modal-content settings-modal">
-                <div class="settings-header">
-                    <div class="settings-title">
-                        <i class='bx bx-cog'></i>
-                        <h2>Settings</h2>
+                    <div class="settings-item">
+                        <label class="settings-input-label">
+                            <span class="input-title">Remind before (hours)</span>
+                            <input type="number" id="reminderBeforeHours" class="settings-input" min="0" max="23"
+                                value="24">
+                        </label>
                     </div>
-                    <button class="settings-close" onclick="closeSettingsModal()">
-                        <i class='bx bx-x'></i>
-                    </button>
                 </div>
 
-                <form id="settingsForm">
-                    <!-- Appearance Section -->
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">Giao Diện</h3>
-
-                        <div class="settings-item">
-                            <label class="settings-toggle">
-                                <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
-                                <div class="toggle-label">
-                                    <div class="toggle-info">
-                                        <span class="toggle-title">Chế độ tối (Dark Mode)</span>
-                                        <span class="toggle-description">Bật/tắt giao diện tối để bảo vệ mắt khi làm
-                                            việc
-                                            vào ban đêm</span>
-                                    </div>
-                                    <div class="toggle-switch">
-                                        <div class="toggle-slider"></div>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Email Notifications Section -->
-                    <div class="settings-section">
-                        <h3 class="settings-section-title">Thông Báo Email</h3>
-
-                        <div class="settings-item">
-                            <label class="settings-toggle">
-                                <input type="checkbox" id="emailNotifications">
-                                <div class="toggle-label">
-                                    <div class="toggle-info">
-                                        <span class="toggle-title">Enable email reminders</span>
-                                        <span class="toggle-description">Nhận thông báo nhắc nhở qua email</span>
-                                    </div>
-                                    <div class="toggle-switch">
-                                        <div class="toggle-slider"></div>
-                                    </div>
-                                </div>
-                            </label>
-                        </div>
-
-                        <div class="settings-item">
-                            <label class="settings-input-label">
-                                <span class="input-title">Remind before (days)</span>
-                                <input type="number" id="reminderBeforeDays" class="settings-input" min="0" max="30"
-                                    value="1">
-                            </label>
-                        </div>
-
-                        <div class="settings-item">
-                            <label class="settings-input-label">
-                                <span class="input-title">Remind before (hours)</span>
-                                <input type="number" id="reminderBeforeHours" class="settings-input" min="0" max="23"
-                                    value="24">
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Modal Actions -->
-                    <div class="settings-actions">
-                        <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save</button>
-                    </div>
-                </form>
-            </div>
+                <!-- Modal Actions -->
+                <div class="settings-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- Load Dashboard Script -->
-        <script src="assets/js/dashboard.js"></script>
+    <!-- Load Dashboard Script -->
+    <script src="assets/js/dashboard.js"></script>
 
 </body>
 

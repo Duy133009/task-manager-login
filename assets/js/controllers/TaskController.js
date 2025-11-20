@@ -39,7 +39,7 @@ class TaskController {
         }
 
         try {
-            this.uiService.showLoading('Đang tải tasks...');
+            this.uiService.showLoading('Loading tasks...');
 
             this.currentTasks = await this.taskService.getUserTasks(
                 this.currentUserId,
@@ -63,16 +63,16 @@ class TaskController {
      */
     async createTask(taskData) {
         if (!this.currentUserId) {
-            this.uiService.showError('Vui lòng đăng nhập để tạo task');
+            this.uiService.showError('Please login to create a task');
             return;
         }
 
         try {
-            this.uiService.showLoading('Đang tạo task...');
+            this.uiService.showLoading('Creating task...');
 
             const newTask = await this.taskService.createTask(this.currentUserId, taskData);
 
-            this.uiService.showSuccess('Task đã được tạo thành công!');
+            this.uiService.showSuccess('Task created successfully!');
             this.uiService.hideLoading();
 
             // Reload tasks to show the new one
@@ -94,16 +94,16 @@ class TaskController {
      */
     async updateTask(taskId, updates) {
         if (!this.currentUserId) {
-            this.uiService.showError('Vui lòng đăng nhập');
+            this.uiService.showError('Please login');
             return;
         }
 
         try {
-            this.uiService.showLoading('Đang cập nhật task...');
+            this.uiService.showLoading('Updating task...');
 
             const updatedTask = await this.taskService.updateTask(this.currentUserId, taskId, updates);
 
-            this.uiService.showSuccess('Task đã được cập nhật!');
+            this.uiService.showSuccess('Task updated!');
             this.uiService.hideLoading();
 
             // Update task in local array
@@ -125,14 +125,14 @@ class TaskController {
      */
     async deleteTask(taskId) {
         if (!this.currentUserId) {
-            this.uiService.showError('Vui lòng đăng nhập');
+            this.uiService.showError('Please login');
             return;
         }
 
         const confirmed = await this.uiService.showConfirm(
             UI_MESSAGES.CONFIRM_DELETE_TASK,
-            'Xóa',
-            'Hủy'
+            'Delete',
+            'Cancel'
         );
 
         if (!confirmed) {
@@ -140,11 +140,11 @@ class TaskController {
         }
 
         try {
-            this.uiService.showLoading('Đang xóa task...');
+            this.uiService.showLoading('Deleting task...');
 
             await this.taskService.deleteTask(this.currentUserId, taskId);
 
-            this.uiService.showSuccess('Task đã được xóa!');
+            this.uiService.showSuccess('Task deleted!');
             this.uiService.hideLoading();
 
             // Remove from local array and update UI
@@ -223,7 +223,7 @@ class TaskController {
         if (tasks.length === 0) {
             taskContainer.innerHTML = `
                 <div class="empty-state">
-                    <p>Chưa có task nào. Tạo task đầu tiên của bạn!</p>
+                    <p>No tasks yet. Create your first task!</p>
                 </div>
             `;
             return;
@@ -275,23 +275,23 @@ class TaskController {
 
         statsContainer.innerHTML = `
             <div class="stat-item">
-                <span class="stat-label">Tổng số:</span>
+                <span class="stat-label">Total Tasks:</span>
                 <span class="stat-value">${stats.total}</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Đang chờ:</span>
+                <span class="stat-label">Pending:</span>
                 <span class="stat-value">${stats.pending}</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Đang làm:</span>
+                <span class="stat-label">In Progress:</span>
                 <span class="stat-value">${stats.in_progress}</span>
             </div>
             <div class="stat-item">
-                <span class="stat-label">Hoàn thành:</span>
+                <span class="stat-label">Completed:</span>
                 <span class="stat-value">${stats.completed}</span>
             </div>
             <div class="stat-item overdue">
-                <span class="stat-label">Quá hạn:</span>
+                <span class="stat-label">Overdue:</span>
                 <span class="stat-value">${stats.overdue}</span>
             </div>
         `;
@@ -363,9 +363,9 @@ class TaskController {
      */
     getPriorityText(priority) {
         switch (priority) {
-            case TASK_PRIORITY.LOW: return 'Thấp';
-            case TASK_PRIORITY.MEDIUM: return 'Trung bình';
-            case TASK_PRIORITY.HIGH: return 'Cao';
+            case TASK_PRIORITY.LOW: return 'Low';
+            case TASK_PRIORITY.MEDIUM: return 'Medium';
+            case TASK_PRIORITY.HIGH: return 'High';
             default: return priority;
         }
     }
@@ -377,9 +377,9 @@ class TaskController {
      */
     getStatusText(status) {
         switch (status) {
-            case TASK_STATUS.PENDING: return 'Chờ xử lý';
-            case TASK_STATUS.IN_PROGRESS: return 'Đang làm';
-            case TASK_STATUS.COMPLETED: return 'Hoàn thành';
+            case TASK_STATUS.PENDING: return 'Pending';
+            case TASK_STATUS.IN_PROGRESS: return 'In Progress';
+            case TASK_STATUS.COMPLETED: return 'Completed';
             default: return status;
         }
     }

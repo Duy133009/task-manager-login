@@ -25,24 +25,24 @@ const AUTH_PROVIDERS = {
 // UI Messages
 const UI_MESSAGES = {
     // Success messages
-    LOGIN_SUCCESS: 'Đăng nhập thành công!',
-    LOGOUT_SUCCESS: 'Đăng xuất thành công!',
-    REGISTER_SUCCESS: 'Đăng ký thành công!',
-    TASK_CREATED: 'Tạo task thành công!',
-    TASK_UPDATED: 'Cập nhật task thành công!',
-    TASK_DELETED: 'Xóa task thành công!',
+    LOGIN_SUCCESS: 'Login successful!',
+    LOGOUT_SUCCESS: 'Logout successful!',
+    REGISTER_SUCCESS: 'Registration successful!',
+    TASK_CREATED: 'Task created successfully!',
+    TASK_UPDATED: 'Task updated successfully!',
+    TASK_DELETED: 'Task deleted successfully!',
 
     // Error messages
-    LOGIN_FAILED: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.',
-    REGISTER_FAILED: 'Đăng ký thất bại. Vui lòng thử lại.',
-    NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối.',
-    UNAUTHORIZED: 'Bạn không có quyền thực hiện thao tác này.',
-    TASK_NOT_FOUND: 'Không tìm thấy task.',
-    VALIDATION_ERROR: 'Dữ liệu không hợp lệ.',
+    LOGIN_FAILED: 'Login failed. Please check your credentials.',
+    REGISTER_FAILED: 'Registration failed. Please try again.',
+    NETWORK_ERROR: 'Network error. Please check your connection.',
+    UNAUTHORIZED: 'You are not authorized to perform this action.',
+    TASK_NOT_FOUND: 'Task not found.',
+    VALIDATION_ERROR: 'Invalid data.',
 
     // Confirm messages
-    CONFIRM_DELETE_TASK: 'Bạn có chắc muốn xóa task này?',
-    CONFIRM_LOGOUT: 'Bạn có chắc muốn đăng xuất?'
+    CONFIRM_DELETE_TASK: 'Are you sure you want to delete this task?',
+    CONFIRM_LOGOUT: 'Are you sure you want to logout?'
 };
 
 // API Endpoints (relative paths)

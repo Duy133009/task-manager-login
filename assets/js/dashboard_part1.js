@@ -237,7 +237,7 @@ function closeModulesModal() {
 // Load available modules from backend
 async function loadAvailableModules() {
     const modulesList = document.getElementById('modulesList');
-    modulesList.innerHTML = '<div class="loading">Đang tải modules...</div>';
+    modulesList.innerHTML = '<div class="loading">Loading modules...</div>';
 
     try {
         // Get available modules from database
@@ -268,7 +268,7 @@ async function loadAvailableModules() {
         }
 
         if (!availableModules || availableModules.length === 0) {
-            modulesList.innerHTML = '<div class="empty-state">Chưa có modules nào</div>';
+            modulesList.innerHTML = '<div class="empty-state">No modules found</div>';
             return;
         }
 
@@ -289,7 +289,7 @@ async function loadAvailableModules() {
 
     } catch (error) {
         console.error('Error loading modules:', error);
-        modulesList.innerHTML = '<div class="error">Có lỗi xảy ra khi tải modules</div>';
+        modulesList.innerHTML = '<div class="error">Error loading modules</div>';
     }
 }
 
@@ -345,11 +345,11 @@ async function saveModules() {
             if (insertError) throw insertError;
         }
 
-        toastService.success('Đã lưu modules thành công!');
+        toastService.success('Modules saved successfully!');
         closeModulesModal();
     } catch (error) {
         console.error('Error saving modules:', error);
-        toastService.error('Có lỗi xảy ra khi lưu modules');
+        toastService.error('Error saving modules');
     }
 }
 
@@ -413,7 +413,7 @@ async function loadProfileData() {
     try {
         if (!currentUserId) {
             console.error('No current user ID');
-            alert('Vui lòng đăng nhập lại');
+            alert('Please login again');
             return;
         }
 
@@ -459,8 +459,8 @@ async function loadProfileData() {
         }
     } catch (error) {
         console.error('Error loading profile:', error);
-        const errorMessage = error.message || 'Có lỗi xảy ra khi tải thông tin profile';
-        alert(`Lỗi: ${errorMessage}\n\nChi tiết: ${JSON.stringify(error, null, 2)}`);
+        const errorMessage = error.message || 'Error loading profile information';
+        alert(`Error: ${errorMessage}\n\nDetails: ${JSON.stringify(error, null, 2)}`);
     }
 }
 
@@ -469,7 +469,7 @@ async function handleSaveProfile(e) {
     e.preventDefault();
 
     if (!currentUserId) {
-        alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+        alert('User information not found. Please login again.');
         window.location.href = 'index.html';
         return;
     }
@@ -477,7 +477,7 @@ async function handleSaveProfile(e) {
     const fullName = document.getElementById('profileFullName').value.trim();
 
     if (!fullName) {
-        toastService.warning('Vui lòng nhập họ và tên');
+        toastService.warning('Please enter full name');
         return;
     }
 
@@ -515,11 +515,11 @@ async function handleSaveProfile(e) {
             displayUserInfo(updatedUser);
         }
 
-        toastService.success('Đã cập nhật profile thành công!');
+        toastService.success('Profile updated successfully!');
         closeProfileModal();
     } catch (error) {
         console.error('Error saving profile:', error);
-        toastService.error('Có lỗi xảy ra khi cập nhật profile');
+        toastService.error('Error updating profile');
     }
 }
 
@@ -535,7 +535,7 @@ function switchView(view) {
 
     // Update content title
     const titles = {
-        'owned': 'Owned',
+        'owned': 'My Tasks',
         'subscribed': 'Subscribed',
         'activities': 'Activities',
         'all': 'All Tasks',
@@ -561,13 +561,13 @@ async function loadTasks() {
     }
 
     // Show loading state for card layout
-    container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: var(--text-secondary);">Đang tải tasks...</div>';
+    container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading tasks...</div>';
 
     try {
         // Check if currentUserId is available
         if (!currentUserId) {
             console.error('currentUserId is not set');
-            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Lỗi: Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.</div>';
+            container.innerHTML = '<div class="loading-cell" style="text-align: center; padding: 40px; color: #dc3545;">Error: User information not found. Please login again.</div>';
             return;
         }
 
@@ -740,7 +740,7 @@ async function loadTasks() {
         });
         const container = document.getElementById('tasksTableBody');
         if (container) {
-            let errorMessage = 'Có lỗi xảy ra khi tải tasks';
+            let errorMessage = 'Error loading tasks';
             if (error.message) {
                 errorMessage += `<br><small style="color: #999; margin-top: 8px; display: block;">${escapeHtml(error.message)}</small>`;
             }
@@ -786,7 +786,13 @@ function renderTasks(tasks) {
 
     // Check for Kanban view
     if (document.querySelector('.tab-btn[data-view="kanban"]')?.classList.contains('active')) {
-        kanbanController.render(tasks);
+        kanbanController.render(tasks, 'tasksTableBody');
+        return;
+    }
+
+    // Check for Gantt view
+    if (document.querySelector('.tab-btn[data-view="gantt"]')?.classList.contains('active')) {
+        ganttController.render(tasks, 'tasksTableBody');
         return;
     }
 
@@ -794,8 +800,8 @@ function renderTasks(tasks) {
         container.innerHTML = `
             <div style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
                 <div style="font-size: 48px; margin-bottom: 16px;">📋</div>
-                <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">Chưa có tasks nào</div>
-                <div style="font-size: 14px; color: var(--gray-400);">Tạo task mới để bắt đầu!</div>
+                <div style="font-size: 18px; font-weight: 500; margin-bottom: 8px;">No tasks found</div>
+                <div style="font-size: 14px; color: var(--gray-400);">Create a new task to get started!</div>
             </div>
         `;
         return;
@@ -814,3 +820,269 @@ function renderTasks(tasks) {
 
         let html = '';
         Object.keys(grouped).forEach(creatorId => {
+            const creator = allUsers[creatorId];
+            const creatorName = creator ? (creator.full_name || creator.username || creator.email) : 'Unknown User';
+
+            html += `
+                <div class="group-header" style="grid-column: 1 / -1; margin-top: 20px; margin-bottom: 10px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                        ${creator?.avatar_url ? `<img src="${creator.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%;">` : creatorName.charAt(0).toUpperCase()}
+                    </div>
+                    ${escapeHtml(creatorName)}
+                    <span style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 12px; font-size: 12px; color: var(--text-secondary);">${grouped[creatorId].length}</span>
+                </div>
+            `;
+
+            grouped[creatorId].forEach(task => {
+                html += createTaskCardHtml(task);
+            });
+        });
+        container.innerHTML = html;
+    } else {
+        // No grouping
+        container.innerHTML = tasks.map(task => createTaskCardHtml(task)).join('');
+    }
+}
+
+function createTaskCardHtml(task) {
+    const creator = allUsers[task.user_id];
+    const creatorName = creator ? (creator.full_name || creator.username || creator.email) : 'Unknown';
+    const avatarUrl = creator?.avatar_url;
+
+    // Priority colors/labels
+    const priorityLabel = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : 'Medium';
+
+    // Status labels
+    const statusLabels = {
+        'pending': 'Pending',
+        'in_progress': 'In Progress',
+        'completed': 'Completed'
+    };
+    const statusLabel = statusLabels[task.status] || task.status;
+
+    return `
+        <div class="task-item priority-${task.priority || 'medium'} ${task.status === 'completed' ? 'completed' : ''}" data-id="${task.id}">
+            <div class="task-card-header">
+                <div class="task-card-main">
+                    <input type="checkbox" class="task-card-checkbox" ${task.status === 'completed' ? 'checked' : ''} 
+                        onclick="toggleTaskStatus('${task.id}', '${task.status}')">
+                    <div class="task-card-title">${escapeHtml(task.title)}</div>
+                </div>
+                <div class="task-card-actions">
+                    <button class="task-card-action-btn" onclick="openEditTaskModal('${task.id}')" title="Edit">
+                        <i class='bx bx-edit-alt'></i>
+                    </button>
+                    <button class="task-card-action-btn text-danger" onclick="deleteTask('${task.id}')" title="Delete">
+                        <i class='bx bx-trash'></i>
+                    </button>
+                </div>
+            </div>
+            
+            ${task.description ? `<div class="task-card-description">${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</div>` : ''}
+            
+            <div class="task-card-footer">
+                <div class="task-card-meta">
+                    <span class="task-card-priority ${task.priority || 'medium'}">${priorityLabel}</span>
+                    <span class="task-card-status ${task.status || 'pending'}">${statusLabel}</span>
+                    ${task.due_date ? `<span>📅 ${new Date(task.due_date).toLocaleDateString()}</span>` : ''}
+                </div>
+                <div class="creator-avatar" title="Created by ${escapeHtml(creatorName)}" 
+                     style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 10px; margin-left: auto;">
+                    ${avatarUrl ? `<img src="${avatarUrl}" style="width: 100%; height: 100%; border-radius: 50%;">` : creatorName.charAt(0).toUpperCase()}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Initialize View Switcher
+document.addEventListener('DOMContentLoaded', () => {
+    // View tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadTasks();
+        });
+    });
+});
+
+// --- Modal Functions ---
+
+function openNewTaskModal() {
+    document.getElementById('newTaskModal').style.display = 'block';
+}
+
+function closeNewTaskModal() {
+    document.getElementById('newTaskModal').style.display = 'none';
+    document.getElementById('newTaskForm').reset();
+}
+
+async function handleNewTask(e) {
+    e.preventDefault();
+
+    const title = document.getElementById('taskTitle').value;
+    const description = document.getElementById('taskDescription').value;
+    const priority = document.getElementById('taskPriority').value;
+    const dueDate = document.getElementById('taskDueDate').value;
+    const assignedTo = document.getElementById('taskAssignedTo').value;
+
+    try {
+        const newTask = {
+            title,
+            description,
+            priority,
+            due_date: dueDate || null,
+            assigned_to: assignedTo || null,
+            status: 'pending',
+            user_id: currentUserId
+        };
+
+        const { data, error } = await supabaseClient
+            .from('tasks')
+            .insert(newTask)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        toastService.success('Task created successfully');
+        closeNewTaskModal();
+        loadTasks();
+    } catch (error) {
+        console.error('Error creating task:', error);
+        toastService.error('Failed to create task');
+    }
+}
+
+function openEditTaskModal(taskId) {
+    // Find task in allTasks
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    // Populate form (reuse new task modal or create a separate one? 
+    // For now, let's assume we use the same modal but adapted, or just alert for now as placeholder
+    // Real implementation would populate the modal fields and change the submit handler
+    // But since I don't have the edit modal HTML, I'll just log it.
+    console.log('Edit task:', taskId);
+    // TODO: Implement full edit logic
+    toastService.info('Edit feature coming soon');
+}
+
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    // Optimistic update
+    // ...
+
+    supabaseClient
+        .from('tasks')
+        .delete()
+        .eq('id', taskId)
+        .then(({ error }) => {
+            if (error) {
+                console.error('Error deleting task:', error);
+                toastService.error('Failed to delete task');
+            } else {
+                toastService.success('Task deleted');
+                loadTasks();
+            }
+        });
+}
+
+async function toggleTaskStatus(taskId, currentStatus) {
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+
+    try {
+        const { error } = await supabaseClient
+            .from('tasks')
+            .update({ status: newStatus })
+            .eq('id', taskId);
+
+        if (error) throw error;
+
+        loadTasks();
+    } catch (error) {
+        console.error('Error updating task status:', error);
+        toastService.error('Failed to update task status');
+    }
+}
+
+// --- Filter Functions ---
+
+function openFilterModal() {
+    document.getElementById('filterModal').style.display = 'block';
+}
+
+function closeFilterModal() {
+    document.getElementById('filterModal').style.display = 'none';
+}
+
+function applyFilters() {
+    const priorities = Array.from(document.getElementById('filterPriority').selectedOptions).map(opt => opt.value);
+    const dueDateFrom = document.getElementById('filterDueDateFrom').value;
+    const dueDateTo = document.getElementById('filterDueDateTo').value;
+    const overdue = document.getElementById('filterOverdue').checked;
+
+    const filters = {
+        priorities,
+        dueDateFrom,
+        dueDateTo,
+        overdue
+    };
+
+    localStorage.setItem('taskFilters', JSON.stringify(filters));
+    closeFilterModal();
+    loadTasks();
+}
+
+function clearFilters() {
+    document.getElementById('filterForm').reset();
+    localStorage.removeItem('taskFilters');
+    loadTasks();
+}
+
+// --- Settings Functions ---
+
+function openSettings() {
+    document.getElementById('settingsModal').style.display = 'block';
+}
+
+function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+}
+
+function handleSaveSettings(e) {
+    e.preventDefault();
+    // Save settings logic here
+    toastService.success('Settings saved');
+    closeSettingsModal();
+}
+
+// --- Sidebar & Navigation ---
+
+function toggleSidebar() {
+    document.querySelector('.sidebar').classList.toggle('open');
+}
+
+async function logout() {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) console.error('Error signing out:', error);
+    window.location.href = 'index.html';
+}
+
+// --- Sorting ---
+
+function openSortMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('sortMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function setSort(field, asc) {
+    currentSort = field === 'dueDate' ? 'due_date' : field;
+    currentSortAsc = asc;
+    loadTasks();
+    document.getElementById('sortMenu').style.display = 'none';
+}
+

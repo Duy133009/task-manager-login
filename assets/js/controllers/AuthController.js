@@ -21,12 +21,12 @@ class AuthController {
      */
     async handleLogin(credentials) {
         try {
-            this.uiService.showLoading('Đang đăng nhập...');
+            this.uiService.showLoading('Logging in...');
 
             const result = await this.authService.login(credentials);
 
             if (result.success) {
-                this.uiService.showSuccess('Đăng nhập thành công!');
+                this.uiService.showSuccess('Login successful!');
                 this.uiService.hideLoading();
 
                 // Redirect to dashboard after short delay
@@ -35,7 +35,7 @@ class AuthController {
                 }, 1000);
             } else {
                 this.uiService.hideLoading();
-                this.uiService.showError(result.error || 'Đăng nhập thất bại');
+                this.uiService.showError(result.error || 'Login failed');
             }
 
         } catch (error) {
@@ -53,12 +53,12 @@ class AuthController {
             // Validate form data
             this.validateRegistrationData(registerData);
 
-            this.uiService.showLoading('Đang tạo tài khoản...');
+            this.uiService.showLoading('Creating account...');
 
             const result = await this.authService.register(registerData);
 
             if (result.success) {
-                this.uiService.showSuccess('Đăng ký thành công! Đang chuyển sang đăng nhập...');
+                this.uiService.showSuccess('Registration successful! Redirecting to login...');
                 this.uiService.hideLoading();
 
                 // Switch to login form after delay
@@ -67,7 +67,7 @@ class AuthController {
                 }, 1500);
             } else {
                 this.uiService.hideLoading();
-                this.uiService.showError(result.error || 'Đăng ký thất bại');
+                this.uiService.showError(result.error || 'Registration failed');
             }
 
         } catch (error) {
@@ -82,14 +82,14 @@ class AuthController {
      */
     async handlePasswordReset(email) {
         try {
-            this.uiService.showLoading('Đang gửi email...');
+            this.uiService.showLoading('Sending email...');
 
             const result = await this.authService.resetPassword(email);
 
             if (result.success) {
-                this.uiService.showSuccess('Email đặt lại mật khẩu đã được gửi!');
+                this.uiService.showSuccess('Password reset email sent!');
             } else {
-                this.uiService.showError(result.error || 'Không thể gửi email');
+                this.uiService.showError(result.error || 'Failed to send email');
             }
 
         } catch (error) {
@@ -104,11 +104,11 @@ class AuthController {
      */
     async handleLogout() {
         try {
-            this.uiService.showLoading('Đang đăng xuất...');
+            this.uiService.showLoading('Logging out...');
 
             await this.authService.logout();
 
-            this.uiService.showSuccess('Đăng xuất thành công!');
+            this.uiService.showSuccess('Logout successful!');
             this.uiService.hideLoading();
 
             // Redirect to login after short delay
@@ -155,35 +155,35 @@ class AuthController {
 
         // Full name validation
         if (!data.fullName || data.fullName.trim().length === 0) {
-            errors.push('Họ và tên là bắt buộc');
+            errors.push('Full name is required');
         }
 
         // Username validation
         if (!data.username || data.username.trim().length === 0) {
-            errors.push('Tên đăng nhập là bắt buộc');
+            errors.push('Username is required');
         } else if (data.username.length < Config.validation.username.minLength) {
-            errors.push(`Tên đăng nhập phải có ít nhất ${Config.validation.username.minLength} ký tự`);
+            errors.push(`Username must be at least ${Config.validation.username.minLength} characters`);
         } else if (data.username.length > Config.validation.username.maxLength) {
-            errors.push(`Tên đăng nhập không được vượt quá ${Config.validation.username.maxLength} ký tự`);
+            errors.push(`Username must not exceed ${Config.validation.username.maxLength} characters`);
         } else if (!Config.validation.username.pattern.test(data.username)) {
-            errors.push('Tên đăng nhập chỉ được chứa chữ cái, số, gạch dưới và gạch ngang');
+            errors.push('Username can only contain letters, numbers, underscores and hyphens');
         }
 
         // Email validation
         if (!data.email || !Config.validation.email.pattern.test(data.email)) {
-            errors.push('Email không hợp lệ');
+            errors.push('Invalid email');
         }
 
         // Password validation
         if (!data.password || data.password.length < Config.validation.password.minLength) {
-            errors.push(`Mật khẩu phải có ít nhất ${Config.validation.password.minLength} ký tự`);
+            errors.push(`Password must be at least ${Config.validation.password.minLength} characters`);
         } else if (data.password.length > Config.validation.password.maxLength) {
-            errors.push(`Mật khẩu không được vượt quá ${Config.validation.password.maxLength} ký tự`);
+            errors.push(`Password must not exceed ${Config.validation.password.maxLength} characters`);
         }
 
         // Confirm password validation
         if (data.password !== data.confirmPassword) {
-            errors.push('Mật khẩu xác nhận không khớp');
+            errors.push('Confirm password does not match');
         }
 
         if (errors.length > 0) {

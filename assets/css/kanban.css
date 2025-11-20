@@ -1,0 +1,103 @@
+/* Kanban Board Styles */
+.kanban-board {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    height: calc(100vh - 200px);
+}
+
+.kanban-column {
+    flex: 0 0 320px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    border: 1px solid var(--border-color);
+}
+
+.kanban-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.kanban-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kanban-count {
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.kanban-tasks {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 100px;
+}
+
+.kanban-tasks.drag-over {
+    background: rgba(var(--primary-rgb), 0.05);
+    border: 2px dashed var(--primary);
+}
+
+/* Kanban Card Styles */
+.kanban-column .task-card {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 0;
+    /* Override default */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    cursor: grab;
+}
+
+.kanban-column .task-card:active {
+    cursor: grabbing;
+}
+
+.kanban-column .task-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.kanban-column .task-card-header {
+    margin-bottom: 8px;
+}
+
+.kanban-column .task-card-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.kanban-column .task-card-footer {
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 12px;
+}
+
+.kanban-column .task-card-actions {
+    display: none;
+    /* Hide actions in Kanban for cleaner look, or show on hover */
+}
+
+.kanban-column .task-card:hover .task-card-actions {
+    display: flex;
+}
